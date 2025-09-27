@@ -1,0 +1,24 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.sqlite3
+
+# Virtualenv
+venv/
+
+# Logs
+*.log
+
+# Alembic
+backend/alembic/versions/*.py
+
+# Env files
+.env
+.env.local
+.env.prod
+
+# VSCode / JetBrains
+.vscode/
+.idea/

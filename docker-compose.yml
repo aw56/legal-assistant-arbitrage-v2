@@ -1,0 +1,34 @@
+version: "3.9"
+services:
+  db:
+    image: postgres:15
+    container_name: legal-assistant-db
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-admin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-Admin@2025!}
+      POSTGRES_DB: ${POSTGRES_DB:-legal_assistant_db}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+  backend:
+    build: .
+    container_name: legal-assistant-api
+    restart: always
+    depends_on:
+      - db
+    env_file:
+      - .env
+    command: >
+      sh -c "
+        ./wait-for-db.sh &&
+        alembic upgrade head &&
+        uvicorn backend.app.main:app --host 0.0.0.0 --port 8000
+      "
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/code
+volumes:
+  pgdata:
