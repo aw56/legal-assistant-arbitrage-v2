@@ -1,10 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+
 from backend.app import models, schemas
 from backend.app.database import get_db
 
 router = APIRouter()
-
 
 @router.post("/", response_model=schemas.Law, status_code=201)
 def create_law(law: schemas.LawCreate, db: Session = Depends(get_db)):
@@ -27,4 +27,4 @@ def delete_law(law_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Law not found")
     db.delete(law)
     db.commit()
-    return {"ok": True}
+    return None

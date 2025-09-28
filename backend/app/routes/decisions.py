@@ -1,10 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+
 from backend.app import models, schemas
 from backend.app.database import get_db
 
 router = APIRouter()
-
 
 @router.post("/", response_model=schemas.Decision, status_code=201)
 def create_decision(decision: schemas.DecisionCreate, db: Session = Depends(get_db)):
@@ -27,4 +27,4 @@ def delete_decision(decision_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Decision not found")
     db.delete(decision)
     db.commit()
-    return {"ok": True}
+    return None
