@@ -1,14 +1,12 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 class UserBase(BaseModel):
     username: str
-    role: str = "client"
+    role: str
 
 class UserCreate(UserBase):
     password: str
 
-class UserRead(UserBase):
+class User(UserBase):
     id: int
-
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)

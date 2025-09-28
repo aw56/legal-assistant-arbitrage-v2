@@ -1,11 +1,21 @@
 import os
+import logging
 from sqlalchemy import create_engine
 from sqlalchemy.engine import URL
 from sqlalchemy.orm import sessionmaker, declarative_base
+from dotenv import load_dotenv
+
+# Загружаем переменные окружения
+load_dotenv()
+
+# Логирование
+logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.DEBUG)
 
 Base = declarative_base()
 
 def build_postgres_url() -> URL:
+    """Формируем DSN для PostgreSQL"""
     return URL.create(
         drivername="postgresql+psycopg2",
         username=os.getenv("POSTGRES_USER", "admin"),
@@ -16,19 +26,29 @@ def build_postgres_url() -> URL:
     )
 
 def get_sqlalchemy_url() -> str:
-    if os.getenv("TEST_SQLITE") == "1":
-        return "sqlite:///./test.db"
-    return str(build_postgres_url())
+    """Определяем URL для SQLAlchemy (SQLite или Postgres)"""
+    if os.getenv("USE_SQLITE") == "1":
+        db_path = "sqlite:///./test.db"
+        logger.info(f"🔗 Подключаемся к SQLite: {db_path}")
+        return db_path
+    else:
+        postgres_url = str(build_postgres_url())
+        logger.info(f"🔗 Подключаемся к PostgreSQL: {postgres_url}")
+        return postgres_url
 
 SQLALCHEMY_DATABASE_URL = get_sqlalchemy_url()
+
+# Подключение движка
 engine = create_engine(
     SQLALCHEMY_DATABASE_URL,
     connect_args={"check_same_thread": False} if SQLALCHEMY_DATABASE_URL.startswith("sqlite") else {},
     future=True,
 )
+
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine, future=True)
 
 def get_db():
+    """Создаём сессию для работы с БД"""
     db = SessionLocal()
     try:
         yield db

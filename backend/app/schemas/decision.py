@@ -1,15 +1,13 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 class DecisionBase(BaseModel):
     case_number: str
     court: str
-    summary: str | None = None
+    summary: str
 
 class DecisionCreate(DecisionBase):
     pass
 
-class DecisionRead(DecisionBase):
+class Decision(DecisionBase):
     id: int
-
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
