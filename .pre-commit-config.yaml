@@ -1,0 +1,40 @@
+# ============================================
+# 📘 pre-commit config для Legal Assistant API v2
+# ============================================
+
+repos:
+  # 🔹 Black — автоформатирование кода
+  - repo: https://github.com/psf/black
+    rev: 24.8.0
+    hooks:
+      - id: black
+        language_version: python3.12
+        args: [--line-length=88]
+
+  # 🔹 isort — сортировка импортов
+  - repo: https://github.com/PyCQA/isort
+    rev: 5.13.2
+    hooks:
+      - id: isort
+        name: isort (python imports)
+        language_version: python3.12
+        args: [--profile=black]
+
+  # 🔹 Flake8 — статический анализ (линтинг)
+  - repo: https://github.com/pycqa/flake8
+    rev: 7.1.1
+    hooks:
+      - id: flake8
+        language_version: python3.12
+        args:
+          - --max-line-length=88
+          - --extend-ignore=E203,W503
+
+  # 🔹 Pre-commit builtin — удаление лишних концов строк и форматирование YAML
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-json

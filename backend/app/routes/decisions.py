@@ -6,6 +6,7 @@ from backend.app.database import get_db
 
 router = APIRouter()
 
+
 @router.post("/", response_model=schemas.Decision, status_code=201)
 def create_decision(decision: schemas.DecisionCreate, db: Session = Depends(get_db)):
     db_decision = models.Decision(**decision.model_dump())

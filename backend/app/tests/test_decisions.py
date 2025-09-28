@@ -1,5 +1,3 @@
-import pytest
-
 def test_create_decision(client):
     response = client.post(
         "/api/decisions/",

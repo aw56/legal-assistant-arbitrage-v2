@@ -1,9 +1,10 @@
-import os
 import logging
+import os
+
+from dotenv import load_dotenv
 from sqlalchemy import create_engine
 from sqlalchemy.engine import URL
-from sqlalchemy.orm import sessionmaker, declarative_base
-from dotenv import load_dotenv
+from sqlalchemy.orm import declarative_base, sessionmaker
 
 # Загружаем переменные окружения
 load_dotenv()
@@ -13,6 +14,7 @@ logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.DEBUG)
 
 Base = declarative_base()
+
 
 def build_postgres_url() -> URL:
     """Формируем DSN для PostgreSQL"""
@@ -25,6 +27,7 @@ def build_postgres_url() -> URL:
         database=os.getenv("POSTGRES_DB", "legal_assistant_db"),
     )
 
+
 def get_sqlalchemy_url() -> str:
     """Определяем URL для SQLAlchemy (SQLite или Postgres)"""
     if os.getenv("USE_SQLITE") == "1":
@@ -36,16 +39,22 @@ def get_sqlalchemy_url() -> str:
         logger.info(f"🔗 Подключаемся к PostgreSQL: {postgres_url}")
         return postgres_url
 
+
 SQLALCHEMY_DATABASE_URL = get_sqlalchemy_url()
 
 # Подключение движка
 engine = create_engine(
     SQLALCHEMY_DATABASE_URL,
-    connect_args={"check_same_thread": False} if SQLALCHEMY_DATABASE_URL.startswith("sqlite") else {},
+    connect_args=(
+        {"check_same_thread": False}
+        if SQLALCHEMY_DATABASE_URL.startswith("sqlite")
+        else {}
+    ),
     future=True,
 )
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine, future=True)
+
 
 def get_db():
     """Создаём сессию для работы с БД"""

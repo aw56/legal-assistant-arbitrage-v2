@@ -1,10 +1,11 @@
-import os
 import logging
-from fastapi import FastAPI
+import os
+
 from dotenv import load_dotenv
+from fastapi import FastAPI
 
 from backend.app.database import Base, engine
-from backend.app.routes import health, users, laws, decisions
+from backend.app.routes import decisions, health, laws, users
 
 # Загружаем .env
 load_dotenv()

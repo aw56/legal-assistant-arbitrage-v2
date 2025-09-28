@@ -6,6 +6,7 @@ from backend.app.database import get_db
 
 router = APIRouter()
 
+
 @router.post("/", response_model=schemas.Law, status_code=201)
 def create_law(law: schemas.LawCreate, db: Session = Depends(get_db)):
     db_law = models.Law(**law.model_dump())

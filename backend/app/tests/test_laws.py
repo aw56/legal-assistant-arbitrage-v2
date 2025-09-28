@@ -1,5 +1,3 @@
-import pytest
-
 def test_create_law(client):
     response = client.post(
         "/api/laws/",

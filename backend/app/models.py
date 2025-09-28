@@ -1,5 +1,7 @@
 from sqlalchemy import Column, Integer, String, Text
+
 from backend.app.database import Base
+
 
 class User(Base):
     __tablename__ = "users"
@@ -9,6 +11,7 @@ class User(Base):
     password = Column(String, nullable=False)
     role = Column(String, default="client")
 
+
 class Law(Base):
     __tablename__ = "laws"
 
@@ -16,6 +19,7 @@ class Law(Base):
     code = Column(String, nullable=False)
     article = Column(String, nullable=False)
     title = Column(String, nullable=False)
+
 
 class Decision(Base):
     __tablename__ = "decisions"

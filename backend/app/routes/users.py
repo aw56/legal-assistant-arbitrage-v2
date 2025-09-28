@@ -6,6 +6,7 @@ from backend.app.database import get_db
 
 router = APIRouter()
 
+
 @router.post("/", response_model=schemas.User, status_code=201)
 def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
     db_user = models.User(**user.model_dump())

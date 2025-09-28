@@ -1,6 +1,8 @@
 import json
 from pathlib import Path
+
 from fastapi.openapi.utils import get_openapi
+
 from backend.app.main import app
 
 schema = get_openapi(
