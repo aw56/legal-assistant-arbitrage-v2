@@ -363,4 +363,3 @@ git push -u origin main
 Хочешь, я сразу вынесу разделы **Git setup** и **GitHub подключение** в отдельный `docs/GIT_SETUP.md`, а в README оставить только краткую ссылку?
 ```
 <!-- test commit for CI/CD -->
-<!-- test commit for CI/CD -->
