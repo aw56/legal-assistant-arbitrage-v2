@@ -1,0 +1,71 @@
+name: CI
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Получаем код
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # 2. Устанавливаем Python
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # 3. Кэшируем зависимости (ускоряет CI)
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('requirements*.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      # 4. Устанавливаем зависимости
+      - name: Install dependencies
+        run: |
+          python -m venv venv
+          source venv/bin/activate
+          pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install -r requirements-dev.txt
+
+      # 5. Линтеры и кодстайл
+      - name: Run linters (black, isort, flake8)
+        run: |
+          source venv/bin/activate
+          make lint
+
+      # 5b. Pre-commit (дополнительно к линтерам)
+      - name: Run pre-commit checks
+        run: |
+          source venv/bin/activate
+          pre-commit run --all-files
+
+      # 6. Запуск тестов с SQLite
+      - name: Run tests
+        run: |
+          source venv/bin/activate
+          make test
+
+      # 7. Генерация OpenAPI-документации
+      - name: Generate API docs
+        run: |
+          source venv/bin/activate
+          make docs
+
+      # 8. Загружаем docs как артефакт (можно скачать из CI)
+      - name: Upload API docs artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: api-docs
+          path: docs/API_DOCS.md
