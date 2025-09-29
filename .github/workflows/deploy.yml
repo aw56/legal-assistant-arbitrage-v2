@@ -1,9 +1,9 @@
 name: Deploy to Server
 
 on:
-  workflow_dispatch: # ручной запуск
   push:
     branches: [ "main" ]
+  workflow_dispatch: # можно запустить вручную из GitHub UI
 
 jobs:
   deploy:
@@ -13,17 +13,16 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # Подключение по SSH и деплой
-      - name: Deploy with SSH
-        uses: appleboy/ssh-action@v1.0.3
+      - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.7.0
         with:
-          host: ${{ secrets.DEPLOY_HOST }}
-          username: ${{ secrets.DEPLOY_USER }}
-          key: ${{ secrets.DEPLOY_KEY }}
-          script: |
+          ssh-private-key: ${{ secrets.DEPLOY_KEY }}
+
+      - name: Deploy via SSH
+        run: |
+          ssh -o StrictHostKeyChecking=no ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} << 'EOF'
             cd ~/legal-assistant-arbitrage-v2
             git pull origin main
-            docker compose -f docker-compose.prod.yml down
             docker compose -f docker-compose.prod.yml pull
             docker compose -f docker-compose.prod.yml up -d --build
-            docker system prune -af --volumes
+          EOF
