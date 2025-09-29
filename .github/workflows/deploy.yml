@@ -1,6 +1,7 @@
 name: Deploy to Server
 
 on:
+  workflow_dispatch: # ручной запуск
   push:
     branches: [ "main" ]
 
@@ -9,30 +10,20 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Чекаутим репозиторий
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # 2. Подключаемся к серверу по SSH и деплоим
-      - name: Deploy via SSH
-        uses: appleboy/ssh-action@v1.0.0
+      # Подключение по SSH и деплой
+      - name: Deploy with SSH
+        uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_KEY }}
           script: |
-            set -e
             cd ~/legal-assistant-arbitrage-v2
-
-            echo "🔄 Обновляем git-репозиторий..."
-            git fetch origin main
-            git reset --hard origin/main
-
-            echo "🐳 Тянем свежие образы..."
+            git pull origin main
+            docker compose -f docker-compose.prod.yml down
             docker compose -f docker-compose.prod.yml pull
-
-            echo "🚀 Перезапускаем сервис..."
-            docker compose -f docker-compose.prod.yml up -d
-
-            echo "🧹 Чистим старые образы..."
-            docker image prune -af
+            docker compose -f docker-compose.prod.yml up -d --build
+            docker system prune -af --volumes
