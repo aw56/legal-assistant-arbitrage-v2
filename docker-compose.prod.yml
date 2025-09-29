@@ -2,8 +2,9 @@ version: "3.9"
 
 services:
   db:
-    image: postgres:15
-    restart: always
+    image: postgres:15-alpine
+    container_name: legal-db
+    restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
@@ -17,8 +18,9 @@ services:
       - pgdata:/var/lib/postgresql/data
 
   backend:
-    build: .
-    restart: always
+    image: ${DOCKER_USERNAME}/legal-assistant-arbitrage-v2:latest
+    container_name: legal-backend
+    restart: unless-stopped
     depends_on:
       db:
         condition: service_healthy
@@ -33,10 +35,15 @@ services:
       sh -c "
         ./wait-for-db.sh &&
         alembic upgrade head &&
-        uvicorn backend.app.main:app --host 0.0.0.0 --port 8000
+        uvicorn backend.app.main:app --host 0.0.0.0 --port 8000 --workers 4
       "
     ports:
       - "8080:8000"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
 volumes:
   pgdata:
