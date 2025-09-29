@@ -3,26 +3,43 @@ name: Deploy to Server
 on:
   push:
     branches: [ "main" ]
-  workflow_dispatch: # можно запустить вручную из GitHub UI
+  workflow_dispatch: # ручной запуск
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
 
     steps:
+      # 1. Чекаутим репозиторий
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup SSH
-        uses: webfactory/ssh-agent@v0.7.0
-        with:
-          ssh-private-key: ${{ secrets.DEPLOY_KEY }}
-
+      # 2. Подключаемся по SSH и выполняем команды на сервере
       - name: Deploy via SSH
-        run: |
-          ssh -o StrictHostKeyChecking=no ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} << 'EOF'
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_KEY }}
+          script: |
             cd ~/legal-assistant-arbitrage-v2
             git pull origin main
             docker compose -f docker-compose.prod.yml pull
             docker compose -f docker-compose.prod.yml up -d --build
-          EOF
+            docker system prune -af
+
+      # 3. Отправляем уведомление в Telegram об успешном деплое
+      - name: Notify Telegram
+        if: success()
+        run: |
+          curl -s -X POST https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage \
+            -d chat_id=${{ secrets.TELEGRAM_CHAT_ID }} \
+            -d text="✅ Деплой успешно завершён на сервере 🚀"
+
+      # 4. Отправляем уведомление об ошибке
+      - name: Notify Telegram on Failure
+        if: failure()
+        run: |
+          curl -s -X POST https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage \
+            -d chat_id=${{ secrets.TELEGRAM_CHAT_ID }} \
+            -d text="❌ Деплой завершился с ошибкой. Проверь GitHub Actions."
