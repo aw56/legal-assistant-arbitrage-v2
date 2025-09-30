@@ -1,0 +1,20 @@
+import os
+from urllib.parse import quote_plus
+
+from dotenv import load_dotenv
+
+# Загружаем .env
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+dotenv_path = os.path.join(BASE_DIR, "..", ".env")
+load_dotenv(dotenv_path)
+
+POSTGRES_USER = quote_plus(os.getenv("POSTGRES_USER", "admin"))
+POSTGRES_PASSWORD = quote_plus(os.getenv("POSTGRES_PASSWORD", "admin"))
+POSTGRES_HOST = os.getenv("POSTGRES_HOST", "localhost")
+POSTGRES_PORT = os.getenv("POSTGRES_PORT", "5432")
+POSTGRES_DB = os.getenv("POSTGRES_DB", "legal_assistant_db")
+
+DATABASE_URL = (
+    f"postgresql+psycopg2://{POSTGRES_USER}:{POSTGRES_PASSWORD}"
+    f"@{POSTGRES_HOST}:{POSTGRES_PORT}/{POSTGRES_DB}"
+)

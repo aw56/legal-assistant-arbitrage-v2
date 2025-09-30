@@ -1,14 +1,32 @@
+# --- Базовый образ ---
 FROM python:3.12-slim
 
-WORKDIR /code
+# --- Переменные окружения ---
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1
 
-RUN pip install --upgrade pip
-COPY requirements.txt .
-RUN pip install -r requirements.txt
+# --- Устанавливаем зависимости системы ---
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    libpq-dev \
+    netcat-openbsd \
+    wget \
+    && rm -rf /var/lib/apt/lists/*
 
+# --- Рабочая директория ---
+WORKDIR /code
+
+# --- Устанавливаем Python зависимости ---
+COPY requirements.txt .
+RUN pip install --upgrade pip && \
+    pip install -r requirements.txt && \
+    pip install alembic psycopg2-binary
+
+# --- Копируем проект ---
 COPY . .
 
-RUN chmod +x /code/wait-for-db.sh || true
-EXPOSE 8000
+# --- Скрипты ---
+RUN chmod +x /code/wait-for-db.sh /code/entrypoint.sh || true
+
+# --- Точка входа ---
+ENTRYPOINT ["/code/entrypoint.sh"]

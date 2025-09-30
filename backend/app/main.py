@@ -11,21 +11,34 @@ from backend.app.routes import decisions, health, laws, users
 load_dotenv()
 
 # Логирование
-logging.basicConfig(level=logging.DEBUG)
-logger = logging.getLogger(__name__)
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s"
+)
+logger = logging.getLogger("legal-assistant")
 
-# Проверяем режим БД
-use_sqlite = os.getenv("USE_SQLITE") == "1"
-if use_sqlite:
+# Проверяем режим работы БД
+USE_SQLITE = os.getenv("USE_SQLITE") == "1"
+if USE_SQLITE:
     logger.info("✅ Используется SQLite (локальная разработка)")
+    Base.metadata.create_all(bind=engine)  # только для dev
 else:
     logger.info("✅ Используется PostgreSQL (docker/prod)")
-
-# Создаём таблицы
-Base.metadata.create_all(bind=engine)
+    # В продакшене таблицы создаются через Alembic миграции
 
 # FastAPI приложение
-app = FastAPI(title="Legal Assistant Arbitrage API")
+app = FastAPI(
+    title="Legal Assistant Arbitrage API",
+    version="1.0.0",
+    docs_url="/docs",
+    redoc_url="/redoc",
+)
+
+
+# Встроенный health-check
+@app.get("/health", tags=["health"])
+def health_check():
+    return {"status": "ok"}
+
 
 # Подключаем роуты
 app.include_router(health.router, prefix="/api", tags=["health"])
