@@ -1,5 +1,4 @@
-Отлично 🚀
-Тогда держи полный файл **`docs/TROUBLESHOOTING.md`**, куда я собрал все типовые ошибки, которые мы уже ловили (psycopg2, Alembic, Docker, env, Makefile) + решения.
+# 📄 `docs/TROUBLESHOOTING.md`
 
 ```markdown
 # 🛠 TROUBLESHOOTING — Legal Assistant Arbitrage v2
@@ -11,7 +10,8 @@
 ## 🐘 PostgreSQL / psycopg2
 
 ### Ошибка
-```
+
+````
 
 psycopg2.OperationalError: could not translate host name "2025!@db" to address: Name or service not known
 
@@ -24,7 +24,6 @@ psycopg2.OperationalError: could not translate host name "2025!@db" to address: 
 
 ```python
 from urllib.parse import quote_plus
-
 DB_PASS = quote_plus(os.getenv("POSTGRES_PASSWORD", ""))
 ````
 
@@ -40,7 +39,12 @@ psycopg2.OperationalError: connection refused
 
 **Решение:**
 
-* Добавить скрипт ожидания (`wait-for-db.sh`), который проверяет доступность PostgreSQL перед стартом FastAPI.
+* Использовать `wait-for-db.sh` перед запуском FastAPI.
+* Если данные повреждены — выполнить:
+
+```bash
+make reset-db
+```
 
 ---
 
@@ -67,15 +71,12 @@ sqlalchemy.url =
 ### Ошибка
 
 ```
-ValueError: invalid interpolation syntax in 'postgresql+psycopg2://admin:Admin%402025%21@db:5432/legal_assistant_db'
+ValueError: invalid interpolation syntax ...
 ```
 
-**Причина:** `ConfigParser` интерпретирует `%` как спецсимвол.
+**Причина:** пароль с `%` интерпретируется как спецсимвол.
 
-**Решение:**
-
-* В `env.py` указывать `config.set_main_option("sqlalchemy.url", SQLALCHEMY_URL)` (после экранирования пароля).
-* Не прописывать пароль напрямую в `alembic.ini`.
+**Решение:** использовать `config.set_main_option("sqlalchemy.url", SQLALCHEMY_URL)` в `migrations/env.py`.
 
 ---
 
@@ -87,7 +88,7 @@ configparser.DuplicateOptionError: option 'script_location' already exists
 
 **Причина:** в `alembic.ini` дублируется ключ.
 
-**Решение:** оставить только один блок `[alembic]` → `script_location = migrations`.
+**Решение:** оставить только один блок `[alembic]`.
 
 ---
 
@@ -96,17 +97,15 @@ configparser.DuplicateOptionError: option 'script_location' already exists
 ### Ошибка
 
 ```
-OCI runtime exec failed: exec failed: unable to start container process: exec: "curl": executable file not found in $PATH
+OCI runtime exec failed: exec failed: "curl": executable file not found
 ```
 
 **Причина:** в образе отсутствует `curl` (или `wget`).
 
-**Решение:**
-Добавить в Dockerfile:
+**Решение:** добавить в Dockerfile:
 
 ```dockerfile
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    curl wget netcat-openbsd
+RUN apt-get update && apt-get install -y --no-install-recommends curl wget netcat-openbsd
 ```
 
 ---
@@ -117,12 +116,17 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 Container restarting in loop (БД недоступна, повтор через 2 сек...)
 ```
 
-**Причина:** бекенд стартует до инициализации базы.
+**Причина:** backend стартует до инициализации базы.
 
 **Решение:**
 
-* Использовать `wait-for-db.sh` в `entrypoint.sh`.
-* Проверить `.env` (`POSTGRES_HOST=db`, `POSTGRES_DB=legal_assistant_db`).
+* Использовать `wait-for-db.sh`.
+* Проверить `.env`.
+* Если нужно пересоздать БД:
+
+```bash
+make reset-db
+```
 
 ---
 
@@ -144,11 +148,9 @@ WARN[0000] the attribute `version` is obsolete, it will be ignored
 
 ```
 configparser.MissingSectionHeaderError: File contains no section headers.
-file: 'alembic.ini', line: 1
-'y[alembic]\n'
 ```
 
-**Причина:** битый `alembic.ini` (например, попали лишние символы при редактировании).
+**Причина:** битый `alembic.ini`.
 
 **Решение:** переписать `alembic.ini` начисто:
 
@@ -166,7 +168,7 @@ sqlalchemy.url =
 POSTGRES_HOST=2025!@db
 ```
 
-**Причина:** случайно в `.env` попал пароль вместо хоста.
+**Причина:** пароль случайно попал вместо хоста.
 
 **Решение:** исправить `.env`:
 
@@ -190,24 +192,23 @@ Makefile:5: *** missing separator.  Stop.
 
 **Причина:** вместо табуляции в рецепте использованы пробелы.
 
-**Решение:** убедиться, что после каждой цели (`target:`) команды начинаются с **TAB**, а не пробелов:
-
-```makefile
-up:
-	docker compose -f docker-compose.prod.yml up -d --build
-```
+**Решение:** убедиться, что после каждой цели команды начинаются с **TAB**, а не пробелов.
 
 ---
 
 ## ✅ Как использовать этот документ
 
 1. Если появилась ошибка → ищи её текст в этом файле.
-2. Если нет — добавляй новую секцию, чтобы не наступать на те же грабли.
-3. Это "живая документация", её обновляем по мере развития проекта.
+2. Если нет — добавляй новую секцию.
+3. Для полной очистки окружения и пересоздания БД всегда есть:
+
+```bash
+make reset-db
+```
 
 ```
 
 ---
 
-Хочешь, я сразу добавлю этот `docs/TROUBLESHOOTING.md` в git и перепишу ссылки в основном `README.md`, чтобы при любой ошибке можно было быстро перейти сюда?
+Хочешь, я сразу подготовлю для тебя коммит: добавим эти два файла и перепишем ссылки на них в основном `README.md`?
 ```
