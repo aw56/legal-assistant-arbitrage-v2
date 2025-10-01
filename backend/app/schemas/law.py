@@ -1,29 +1,27 @@
-from typing import Optional
+from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict
 
 
-# 🔹 Базовая схема
 class LawBase(BaseModel):
     code: str
     article: str
     title: str
 
 
-# 🔹 Создание
 class LawCreate(LawBase):
-    pass
+    text: str | None = None
 
 
-# 🔹 Обновление (частичное)
-class LawUpdate(BaseModel):
-    code: Optional[str] = None
-    article: Optional[str] = None
-    title: Optional[str] = None
-
-
-# 🔹 Возврат
 class Law(LawBase):
     id: int
+    text: str | None = None
+    created_at: datetime
+    updated_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class LawUpdate(BaseModel):
+    title: str | None = None
+    text: str | None = None

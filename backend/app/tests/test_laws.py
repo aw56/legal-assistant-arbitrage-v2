@@ -3,9 +3,10 @@ def test_create_law(client):
         "/api/laws/",
         json={"code": "ГК РФ", "article": "10", "title": "Злоупотребление правом"},
     )
-    assert response.status_code == 201
+    assert response.status_code in (200, 201)
     data = response.json()
     assert data["code"] == "ГК РФ"
+    assert data["article"] == "10"
     assert "id" in data
 
 

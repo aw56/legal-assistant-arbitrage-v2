@@ -1,7 +1,5 @@
-# backend/app/models.py
 from __future__ import annotations
 
-import enum
 from datetime import date, datetime
 from typing import List, Optional
 
@@ -20,15 +18,7 @@ from sqlalchemy import (
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from backend.app.database import Base
-
-# --- Вспомогательные типы/enum ------------------------------------------------
-
-
-class UserRole(enum.Enum):
-    admin = "admin"
-    lawyer = "lawyer"
-    client = "client"
-
+from backend.app.schemas.user import UserRole  # ✅ используем общий Enum
 
 # --- Ассоциация Решение ↔ Норма (многие-ко-многим) ----------------------------
 
@@ -42,7 +32,10 @@ decision_law_link = Table(
         primary_key=True,
     ),
     Column(
-        "law_id", Integer, ForeignKey("laws.id", ondelete="CASCADE"), primary_key=True
+        "law_id",
+        Integer,
+        ForeignKey("laws.id", ondelete="CASCADE"),
+        primary_key=True,
     ),
     UniqueConstraint("decision_id", "law_id", name="uq_decision_law"),
 )
@@ -60,7 +53,6 @@ class User(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
     username: Mapped[str] = mapped_column(String(150), nullable=False, unique=True)
-    # оставил поле password для совместимости с текущим кодом (лучше хранить хэш)
     password: Mapped[str] = mapped_column(String(255), nullable=False)
 
     role: Mapped[UserRole] = mapped_column(
@@ -99,6 +91,7 @@ class Law(Base):
     title: Mapped[str] = mapped_column(
         String(255), nullable=False
     )  # краткое название статьи
+    text: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     # связи
     decisions: Mapped[List["Decision"]] = relationship(

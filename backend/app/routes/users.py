@@ -1,73 +1,35 @@
-from typing import List
-
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, status
 from sqlalchemy.orm import Session
 
-from backend.app import models, schemas
+from backend.app import schemas
 from backend.app.database import get_db
+from backend.app.services import users as user_service
 
-router = APIRouter()
-
-
-# 🔹 Создать пользователя
-@router.post("/", response_model=schemas.user.User)
-def create_user(user: schemas.user.UserCreate, db: Session = Depends(get_db)):
-    db_user = (
-        db.query(models.User).filter(models.User.username == user.username).first()
-    )
-    if db_user:
-        raise HTTPException(
-            status_code=400, detail="❌ Пользователь с таким именем уже существует"
-        )
-
-    new_user = models.User(
-        username=user.username, password=user.password, role=user.role
-    )
-    db.add(new_user)
-    db.commit()
-    db.refresh(new_user)
-    return new_user
+router = APIRouter(tags=["users"])
 
 
-# 🔹 Получить всех пользователей
-@router.get("/", response_model=List[schemas.user.User])
+@router.post("/", response_model=schemas.UserRead, status_code=status.HTTP_201_CREATED)
+def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
+    return user_service.create_user(db, user)
+
+
+@router.get("/", response_model=list[schemas.UserRead])
 def read_users(db: Session = Depends(get_db)):
-    return db.query(models.User).all()
+    return user_service.get_users(db)
 
 
-# 🔹 Получить пользователя по ID
-@router.get("/{user_id}", response_model=schemas.user.User)
+@router.get("/{user_id}", response_model=schemas.UserRead)
 def read_user(user_id: int, db: Session = Depends(get_db)):
-    user = db.query(models.User).filter(models.User.id == user_id).first()
-    if not user:
-        raise HTTPException(status_code=404, detail="❌ Пользователь не найден")
-    return user
+    return user_service.get_user(db, user_id)
 
 
-# 🔹 Обновить пользователя (частично)
-@router.patch("/{user_id}", response_model=schemas.user.User)
+@router.put("/{user_id}", response_model=schemas.UserRead)
 def update_user(
-    user_id: int, user_update: schemas.user.UserUpdate, db: Session = Depends(get_db)
+    user_id: int, user_update: schemas.UserUpdate, db: Session = Depends(get_db)
 ):
-    user = db.query(models.User).filter(models.User.id == user_id).first()
-    if not user:
-        raise HTTPException(status_code=404, detail="❌ Пользователь не найден")
-
-    for key, value in user_update.dict(exclude_unset=True).items():
-        setattr(user, key, value)
-
-    db.commit()
-    db.refresh(user)
-    return user
+    return user_service.update_user(db, user_id, user_update)
 
 
-# 🔹 Удалить пользователя
-@router.delete("/{user_id}")
+@router.delete("/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_user(user_id: int, db: Session = Depends(get_db)):
-    user = db.query(models.User).filter(models.User.id == user_id).first()
-    if not user:
-        raise HTTPException(status_code=404, detail="❌ Пользователь не найден")
-
-    db.delete(user)
-    db.commit()
-    return {"status": "✅ Пользователь удалён"}
+    return user_service.delete_user(db, user_id)

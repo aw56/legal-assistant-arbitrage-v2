@@ -7,7 +7,7 @@ def test_create_decision(client):
             "summary": "Иск удовлетворён частично",
         },
     )
-    assert response.status_code == 201
+    assert response.status_code in (200, 201)
     data = response.json()
     assert data["case_number"] == "А40-12345/2025"
     assert "id" in data

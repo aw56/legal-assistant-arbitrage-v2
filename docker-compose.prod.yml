@@ -4,10 +4,8 @@ services:
   db:
     image: postgres:15
     restart: always
-    environment:
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: ${POSTGRES_DB}
+    container_name: legal-assistant-db
+    env_file: .env
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 5s
@@ -15,23 +13,28 @@ services:
       retries: 5
     volumes:
       - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
 
   backend:
     build: .
-    image: ${DOCKER_USERNAME}/legal-assistant-arbitrage-v2:latest
+    image: legal-assistant-arbitrage-v2_backend:latest
+    container_name: legal-assistant-api
     restart: always
     depends_on:
       db:
         condition: service_healthy
     env_file: .env
-    environment:
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: ${POSTGRES_DB}
-      POSTGRES_HOST: db
-      POSTGRES_PORT: 5432
+    command: >
+      sh -c "
+        ./wait-for-db.sh &&
+        alembic upgrade head &&
+        uvicorn backend.app.main:app --host 0.0.0.0 --port 8000
+      "
     ports:
       - "8080:8000"
+    volumes:
+      - .:/code
 
 volumes:
   pgdata:

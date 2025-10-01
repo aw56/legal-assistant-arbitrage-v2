@@ -1,83 +1,37 @@
-from typing import List
-
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, status
 from sqlalchemy.orm import Session
 
-from backend.app import models, schemas
+from backend.app import schemas
 from backend.app.database import get_db
+from backend.app.services import decisions as decision_service
 
-router = APIRouter()
-
-
-# 🔹 Создать судебное решение
-@router.post("/", response_model=schemas.decision.Decision)
-def create_decision(
-    decision: schemas.decision.DecisionCreate, db: Session = Depends(get_db)
-):
-    db_decision = (
-        db.query(models.Decision)
-        .filter(models.Decision.case_number == decision.case_number)
-        .first()
-    )
-    if db_decision:
-        raise HTTPException(
-            status_code=400, detail="❌ Решение с таким номером дела уже существует"
-        )
-
-    new_decision = models.Decision(**decision.dict())
-    db.add(new_decision)
-    db.commit()
-    db.refresh(new_decision)
-    return new_decision
+router = APIRouter(tags=["decisions"])
 
 
-# 🔹 Получить все решения
-@router.get("/", response_model=List[schemas.decision.Decision])
+@router.post("/", response_model=schemas.Decision, status_code=status.HTTP_201_CREATED)
+def create_decision(decision: schemas.DecisionCreate, db: Session = Depends(get_db)):
+    return decision_service.create_decision(db, decision)
+
+
+@router.get("/", response_model=list[schemas.Decision])
 def read_decisions(db: Session = Depends(get_db)):
-    return db.query(models.Decision).all()
+    return decision_service.get_decisions(db)
 
 
-# 🔹 Получить решение по ID
-@router.get("/{decision_id}", response_model=schemas.decision.Decision)
+@router.get("/{decision_id}", response_model=schemas.Decision)
 def read_decision(decision_id: int, db: Session = Depends(get_db)):
-    decision = (
-        db.query(models.Decision).filter(models.Decision.id == decision_id).first()
-    )
-    if not decision:
-        raise HTTPException(status_code=404, detail="❌ Решение не найдено")
-    return decision
+    return decision_service.get_decision(db, decision_id)
 
 
-# 🔹 Обновить решение (частично)
-@router.patch("/{decision_id}", response_model=schemas.decision.Decision)
+@router.put("/{decision_id}", response_model=schemas.Decision)
 def update_decision(
     decision_id: int,
-    decision_update: schemas.decision.DecisionUpdate,
+    decision_update: schemas.DecisionUpdate,
     db: Session = Depends(get_db),
 ):
-    decision = (
-        db.query(models.Decision).filter(models.Decision.id == decision_id).first()
-    )
-    if not decision:
-        raise HTTPException(status_code=404, detail="❌ Решение не найдено")
-
-    for key, value in decision_update.dict(exclude_unset=True).items():
-        setattr(decision, key, value)
-
-    db.commit()
-    db.refresh(decision)
-    return decision
+    return decision_service.update_decision(db, decision_id, decision_update)
 
 
-# 🔹 Удалить решение
-@router.delete("/{decision_id}")
+@router.delete("/{decision_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_decision(decision_id: int, db: Session = Depends(get_db)):
-    decision = (
-        db.query(models.Decision).filter(models.Decision.id == decision_id).first()
-    )
-    if not decision:
-        raise HTTPException(status_code=404, detail="❌ Решение не найдено")
-
-    db.delete(decision)
-    db.commit()
-    return {"status": "✅ Решение удалено"}
+    return decision_service.delete_decision(db, decision_id)

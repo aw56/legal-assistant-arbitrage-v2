@@ -357,7 +357,6 @@ make help
 ---
 
 ## 📚 Документация
-
 * [DEPLOY.md](docs/DEPLOY.md) → деплой
 * [LOCAL_DEV.md](docs/LOCAL_DEV.md) → локальная разработка
 * [TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) → частые ошибки
@@ -372,6 +371,315 @@ make help
 * даёт **практические инструкции** по запуску, миграциям и тестам,
 * служит **паспортом проекта**.
 
+
 ---
 
-Хочешь, я сразу сгенерирую для тебя и `docs/DEPLOY.md` + `docs/LOCAL_DEV.md`, чтобы документация была полностью завершена?
+## 📂 Шаг 1. Скрипт для генерации
+
+Создадим Python-скрипт `scripts/generate_docs.py`, который будет дергать `/openapi.json` у работающего FastAPI и конвертировать его в Markdown.
+
+### `scripts/generate_docs.py`
+
+````python
+import requests
+import sys
+import json
+from pathlib import Path
+
+OUTPUT_FILE = Path("docs/API_DOCS.md")
+API_URL = "http://localhost:8000/openapi.json"  # локальный сервер FastAPI
+
+def main():
+    try:
+        response = requests.get(API_URL)
+        response.raise_for_status()
+        spec = response.json()
+    except Exception as e:
+        sys.stderr.write(f"❌ Ошибка запроса {API_URL}: {e}\n")
+        sys.exit(1)
+
+    md = []
+    md.append("# 📖 API Docs — Legal Assistant Arbitrage v2\n")
+    md.append(f"Сгенерировано автоматически из `{API_URL}`\n\n")
+
+    for path, methods in spec.get("paths", {}).items():
+        md.append(f"## `{path}`\n")
+        for method, details in methods.items():
+            summary = details.get("summary", "")
+            md.append(f"### {method.upper()}\n")
+            md.append(f"- **Описание:** {summary}\n")
+            if "parameters" in details:
+                md.append("#### Параметры:\n")
+                for p in details["parameters"]:
+                    md.append(f"- `{p['name']}` ({p['in']}): {p.get('description','')}")
+            if "requestBody" in details:
+                md.append("#### Тело запроса:\n")
+                md.append("```json\nпример данных...\n```\n")
+            if "responses" in details:
+                md.append("#### Ответы:\n")
+                for code, resp in details["responses"].items():
+                    desc = resp.get("description", "")
+                    md.append(f"- `{code}`: {desc}")
+            md.append("\n")
+
+    OUTPUT_FILE.write_text("\n".join(md), encoding="utf-8")
+    print(f"✅ Документация сохранена в {OUTPUT_FILE}")
+
+
+if __name__ == "__main__":
+    main()
+````
+
+---
+
+## 📂 Шаг 2. Добавим в `Makefile`
+
+```makefile
+apidocs: ## 📖 Сгенерировать API_DOCS.md из OpenAPI
+	python3 scripts/generate_docs.py
+```
+
+---
+
+## 📂 Шаг 3. Добавим в документацию
+
+В `README.md` или `docs/README.v2.md` добавляем раздел:
+
+````markdown
+## 📖 Автогенерация API Docs
+
+Документация API генерируется из OpenAPI схемы FastAPI:
+
+```bash
+make apidocs
+````
+
+Файл будет сохранён в:
+
+```
+docs/API_DOCS.md
+```
+
+````
+
+---
+
+## 📂 Шаг 4. Пример результата (`docs/API_DOCS.md`)
+
+```markdown
+# 📖 API Docs — Legal Assistant Arbitrage v2
+
+Сгенерировано автоматически из `/openapi.json`
+
+## `/api/users/`
+
+### POST
+- **Описание:** Создание пользователя
+- **Ответы:**
+  - `201`: Пользователь создан
+  - `400`: Ошибка валидации
+
+### GET
+- **Описание:** Получить список пользователей
+- **Ответы:**
+  - `200`: Список пользователей
+
+## `/api/laws/`
+
+### POST
+- **Описание:** Создание закона
+- **Ответы:**
+  - `201`: Закон создан
+````
+
+---
+
+## 🚀 Инструкции
+
+1. Создай папку `scripts/` и файл `generate_docs.py`.
+2. Добавь цель `apidocs` в `Makefile`.
+3. Запусти сервер:
+
+```bash
+make run
+```
+
+4. Сгенерируй документацию:
+
+```bash
+make apidocs
+```
+
+5. Проверь `docs/API_DOCS.md`.
+
+---
+
+# ⚖️ Legal Assistant API v2
+
+[![CI](https://github.com/your-org/legal-assistant-arbitrage-v2/actions/workflows/ci.yml/badge.svg)](https://github.com/your-org/legal-assistant-arbitrage-v2/actions/workflows/ci.yml)
+[![Docs Auto Update](https://github.com/your-org/legal-assistant-arbitrage-v2/actions/workflows/docs.yml/badge.svg)](https://github.com/your-org/legal-assistant-arbitrage-v2/actions/workflows/docs.yml)
+
+---
+
+## 🛠 CI/CD Workflows
+
+### ✅ CI (`ci.yml`)
+- Запускается при **push/PR** в `main` или `develop`.
+- Проверяет:
+  - 🔹 Линтеры (`black`, `isort`, `flake8`)
+  - 🔹 Тесты (`pytest`)
+  - 🔹 Генерацию `docs/API_DOCS.md`
+
+### 📖 Docs Auto Update (`docs.yml`)
+- Запускается при **push** в `main` или `develop`.
+- Генерирует `docs/API_DOCS.md` из FastAPI.
+- Если файл изменился → коммитит его в репозиторий.
+
+---
+
+## 🚀 Quickstart для разработчиков
+
+### 1. Установить зависимости
+```bash
+python3.12 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+````
+
+### 2. Запустить локальный сервер FastAPI
+
+```bash
+make run         # запуск uvicorn в фоне
+make status      # проверить статус
+make logs        # смотреть логи
+make stop        # остановить
+```
+
+Доступ:
+
+* Swagger UI: [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
+* ReDoc: [http://127.0.0.1:8000/redoc](http://127.0.0.1:8000/redoc)
+
+### 3. Тесты
+
+```bash
+make test
+```
+
+### 4. Генерация API документации
+
+```bash
+make apidocs
+```
+
+Документация сохраняется в: [`docs/API_DOCS.md`](docs/API_DOCS.md)
+
+---
+
+## 📖 Документация API
+
+* [docs/API_DOCS.md](docs/API_DOCS.md) — актуальная версия
+* Swagger UI — `/docs`
+* ReDoc — `/redoc`
+
+```
+
+---
+
+Отличный шаг 🙌
+`CONTRIBUTING.md` поможет держать проект в порядке и сразу покажет новым разработчикам правила игры.
+
+---
+
+## 📂 Готовый шаблон `CONTRIBUTING.md`
+
+````markdown
+# 🤝 Contributing Guide — Legal Assistant API v2
+
+Спасибо, что хотите внести вклад в проект ⚖️
+Пожалуйста, следуйте этим правилам, чтобы мы могли поддерживать единый стиль и качество кода.
+
+---
+
+## 🚀 Workflow разработки
+
+1. **Форкни** репозиторий или создай новую ветку от `develop`:
+   ```bash
+   git checkout develop
+   git pull origin develop
+   git checkout -b feature/my-feature
+````
+
+2. **Установи зависимости** (Python 3.12 + venv):
+
+   ```bash
+   python3.12 -m venv venv
+   source venv/bin/activate
+   pip install -r requirements.txt
+   pre-commit install
+   ```
+
+3. **Запусти тесты и линтеры перед коммитом**:
+
+   ```bash
+   make lint    # прогоняет pre-commit (black, isort, flake8)
+   make test    # pytest
+   ```
+
+4. **Оформи коммит по Conventional Commits**:
+
+   ```
+   feat: добавлен эндпоинт для законов
+   fix: исправлен баг в схемах Decision
+   docs: обновлен README и CONTRIBUTING
+   ```
+
+5. **Перед пушем сгенерируй API Docs**:
+
+   ```bash
+   make apidocs
+   git add docs/API_DOCS.md
+   ```
+
+6. **Создай Pull Request в `develop`**:
+
+   * Заголовок PR = краткое описание задачи
+   * В описание добавь:
+
+     * что было сделано
+     * как тестировать
+     * есть ли изменения в API
+
+---
+
+## 📋 Ветки
+
+* `main` → стабильный релиз
+* `develop` → основная ветка разработки
+* `feature/*` → новые фичи
+* `fix/*` → багфиксы
+* `docs/*` → документация
+
+---
+
+## ✅ Чеклист перед PR
+
+* [ ] Код отформатирован (`make lint`)
+* [ ] Все тесты проходят (`make test`)
+* [ ] Документация API обновлена (`make apidocs`)
+* [ ] Обновлен `README.md`/`CONTRIBUTING.md`, если требуется
+
+---
+
+## 🛠 Полезные команды
+
+```bash
+make run       # запуск FastAPI (локально в фоне)
+make stop      # остановка FastAPI
+make logs      # логи FastAPI
+make test      # pytest
+make lint      # прогон pre-commit
+make apidocs   # сгенерировать API_DOCS.md
+```
+
+---

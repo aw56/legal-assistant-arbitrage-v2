@@ -1,71 +1,53 @@
-name: CI
+name: ✅ CI Pipeline
 
 on:
   push:
-    branches: ["main"]
+    branches: [ main ]
   pull_request:
-    branches: ["main"]
+    branches: [ main ]
 
 jobs:
-  build:
+  lint-and-test:
     runs-on: ubuntu-latest
 
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: admin
+          POSTGRES_PASSWORD: admin
+          POSTGRES_DB: legal_assistant_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U admin -d legal_assistant_db"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
     steps:
-      # 1. Получаем код
-      - name: Checkout repository
+      - name: 🛎️ Checkout
         uses: actions/checkout@v4
 
-      # 2. Устанавливаем Python
-      - name: Set up Python
+      - name: 🐍 Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
 
-      # 3. Кэшируем зависимости (ускоряет CI)
-      - name: Cache pip
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ hashFiles('requirements*.txt') }}
-          restore-keys: |
-            ${{ runner.os }}-pip-
-
-      # 4. Устанавливаем зависимости
-      - name: Install dependencies
+      - name: 📦 Install dependencies
         run: |
-          python -m venv venv
-          source venv/bin/activate
-          pip install --upgrade pip
-          pip install -r requirements.txt
+          python -m pip install --upgrade pip
           pip install -r requirements-dev.txt
 
-      # 5. Линтеры и кодстайл
-      - name: Run linters (black, isort, flake8)
-        run: |
-          source venv/bin/activate
-          make lint
+      - name: 🧹 Run pre-commit (lint)
+        run: pre-commit run --all-files --show-diff-on-failure
 
-      # 5b. Pre-commit (дополнительно к линтерам)
-      - name: Run pre-commit checks
-        run: |
-          source venv/bin/activate
-          pre-commit run --all-files
+      - name: 🗄️ Run migrations
+        env:
+          DATABASE_URL: postgresql+psycopg2://admin:admin@localhost:5432/legal_assistant_db
+        run: alembic upgrade head
 
-      # 6. Запуск тестов с SQLite
-      - name: Run tests
-        run: |
-          source venv/bin/activate
-          make test
-
-      # 7. Генерация OpenAPI-документации
-      - name: Generate API docs
-        run: |
-          source venv/bin/activate
-          make docs
-
-      # 8. Загружаем docs как артефакт (можно скачать из CI)
-      - name: Upload API docs artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: api-docs
-          path: docs/API_DOCS.md
+      - name: ✅ Run tests
+        env:
+          DATABASE_URL: postgresql+psycopg2://admin:admin@localhost:5432/legal_assistant_db
+        run: pytest -vv --disable-warnings

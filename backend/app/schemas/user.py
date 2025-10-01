@@ -1,28 +1,33 @@
-from typing import Literal, Optional
+from datetime import datetime
+from enum import Enum
 
-from pydantic import BaseModel, ConfigDict, constr
+from pydantic import BaseModel, ConfigDict
 
 
-# 🔹 Базовая схема (для отображения)
+class UserRole(str, Enum):
+    admin = "admin"
+    lawyer = "lawyer"
+    client = "client"
+
+
 class UserBase(BaseModel):
     username: str
-    role: Literal["admin", "lawyer", "client"] = "client"
+    role: UserRole
 
 
-# 🔹 Для создания пользователя
 class UserCreate(UserBase):
-    password: constr(min_length=6, max_length=100)
+    password: str
 
 
-# 🔹 Для обновления пользователя (частичное изменение)
-class UserUpdate(BaseModel):
-    username: Optional[str] = None
-    password: Optional[constr(min_length=6, max_length=100)] = None
-    role: Optional[Literal["admin", "lawyer", "client"]] = None
-
-
-# 🔹 Для возврата пользователю
-class User(UserBase):
+class UserRead(UserBase):
     id: int
+    created_at: datetime
+    updated_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class UserUpdate(BaseModel):
+    username: str | None = None
+    role: UserRole | None = None
+    password: str | None = None

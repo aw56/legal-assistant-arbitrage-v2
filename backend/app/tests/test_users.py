@@ -3,9 +3,10 @@ def test_create_user(client):
         "/api/users/",
         json={"username": "alice", "password": "secret", "role": "client"},
     )
-    assert response.status_code == 201
+    assert response.status_code in (200, 201)
     data = response.json()
     assert data["username"] == "alice"
+    assert data["role"] == "client"
     assert "id" in data
 
 

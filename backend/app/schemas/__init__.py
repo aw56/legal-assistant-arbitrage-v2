@@ -1,12 +1,19 @@
-from .decision import Decision, DecisionCreate
-from .law import Law, LawCreate
-from .user import User, UserCreate
+from .decision import Decision, DecisionCreate, DecisionUpdate
+from .law import Law, LawCreate, LawUpdate
+from .user import UserCreate, UserRead, UserRole, UserUpdate
 
 __all__ = [
-    "User",
+    # Users
     "UserCreate",
-    "Law",
+    "UserRead",
+    "UserUpdate",
+    "UserRole",
+    # Laws
     "LawCreate",
-    "Decision",
+    "Law",
+    "LawUpdate",
+    # Decisions
     "DecisionCreate",
+    "Decision",
+    "DecisionUpdate",
 ]

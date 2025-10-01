@@ -1,29 +1,28 @@
-from typing import Optional
+from datetime import date, datetime
 
 from pydantic import BaseModel, ConfigDict
 
 
-# 🔹 Базовая схема
 class DecisionBase(BaseModel):
     case_number: str
     court: str
-    summary: Optional[str] = None
+    summary: str | None = None
 
 
-# 🔹 Создание
 class DecisionCreate(DecisionBase):
-    pass
+    date_decided: date | None = None
 
 
-# 🔹 Обновление (частичное)
-class DecisionUpdate(BaseModel):
-    case_number: Optional[str] = None
-    court: Optional[str] = None
-    summary: Optional[str] = None
-
-
-# 🔹 Возврат
 class Decision(DecisionBase):
     id: int
+    date_decided: date | None = None
+    created_at: datetime
+    updated_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class DecisionUpdate(BaseModel):
+    court: str | None = None
+    summary: str | None = None
+    date_decided: date | None = None

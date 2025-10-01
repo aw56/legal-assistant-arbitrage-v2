@@ -1,63 +1,35 @@
-from typing import List
-
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, status
 from sqlalchemy.orm import Session
 
-from backend.app import models, schemas
+from backend.app import schemas
 from backend.app.database import get_db
+from backend.app.services import laws as law_service
 
-router = APIRouter()
-
-
-# 🔹 Создать закон
-@router.post("/", response_model=schemas.law.Law)
-def create_law(law: schemas.law.LawCreate, db: Session = Depends(get_db)):
-    new_law = models.Law(**law.dict())
-    db.add(new_law)
-    db.commit()
-    db.refresh(new_law)
-    return new_law
+router = APIRouter(tags=["laws"])
 
 
-# 🔹 Получить все законы
-@router.get("/", response_model=List[schemas.law.Law])
+@router.post("/", response_model=schemas.Law, status_code=status.HTTP_201_CREATED)
+def create_law(law: schemas.LawCreate, db: Session = Depends(get_db)):
+    return law_service.create_law(db, law)
+
+
+@router.get("/", response_model=list[schemas.Law])
 def read_laws(db: Session = Depends(get_db)):
-    return db.query(models.Law).all()
+    return law_service.get_laws(db)
 
 
-# 🔹 Получить закон по ID
-@router.get("/{law_id}", response_model=schemas.law.Law)
+@router.get("/{law_id}", response_model=schemas.Law)
 def read_law(law_id: int, db: Session = Depends(get_db)):
-    law = db.query(models.Law).filter(models.Law.id == law_id).first()
-    if not law:
-        raise HTTPException(status_code=404, detail="❌ Закон не найден")
-    return law
+    return law_service.get_law(db, law_id)
 
 
-# 🔹 Обновить закон (частично)
-@router.patch("/{law_id}", response_model=schemas.law.Law)
+@router.put("/{law_id}", response_model=schemas.Law)
 def update_law(
-    law_id: int, law_update: schemas.law.LawUpdate, db: Session = Depends(get_db)
+    law_id: int, law_update: schemas.LawUpdate, db: Session = Depends(get_db)
 ):
-    law = db.query(models.Law).filter(models.Law.id == law_id).first()
-    if not law:
-        raise HTTPException(status_code=404, detail="❌ Закон не найден")
-
-    for key, value in law_update.dict(exclude_unset=True).items():
-        setattr(law, key, value)
-
-    db.commit()
-    db.refresh(law)
-    return law
+    return law_service.update_law(db, law_id, law_update)
 
 
-# 🔹 Удалить закон
-@router.delete("/{law_id}")
+@router.delete("/{law_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_law(law_id: int, db: Session = Depends(get_db)):
-    law = db.query(models.Law).filter(models.Law.id == law_id).first()
-    if not law:
-        raise HTTPException(status_code=404, detail="❌ Закон не найден")
-
-    db.delete(law)
-    db.commit()
-    return {"status": "✅ Закон удалён"}
+    return law_service.delete_law(db, law_id)

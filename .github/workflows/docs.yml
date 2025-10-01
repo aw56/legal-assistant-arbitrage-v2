@@ -1,0 +1,44 @@
+name: API Docs Auto Update
+
+on:
+  push:
+    branches: [ main, develop ]
+
+jobs:
+  update-docs:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Клонируем репозиторий
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # нужно, чтобы пушить обратно
+
+      # 2. Устанавливаем Python
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      # 3. Ставим зависимости
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+
+      # 4. Генерим API_DOCS.md
+      - name: Generate API Docs
+        run: make apidocs
+
+      # 5. Проверяем и коммитим, если есть изменения
+      - name: Commit updated API_DOCS.md
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          if ! git diff --quiet docs/API_DOCS.md; then
+            git add docs/API_DOCS.md
+            git commit -m "🔄 Автообновление API_DOCS.md"
+            git push
+          else
+            echo "✅ API_DOCS.md без изменений"
+          fi

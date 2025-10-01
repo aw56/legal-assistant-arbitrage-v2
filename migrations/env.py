@@ -1,44 +1,39 @@
 import os
 import sys
 from logging.config import fileConfig
-from urllib.parse import quote_plus
 
 from alembic import context
-from dotenv import load_dotenv
-from sqlalchemy import engine_from_config, pool
+from sqlalchemy import create_engine, pool
 
-# --- Загружаем .env ---
-load_dotenv(".env")
+# === Добавляем корень проекта в PYTHONPATH ===
+BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+if BASE_DIR not in sys.path:
+    sys.path.insert(0, BASE_DIR)
 
-# --- Alembic config ---
+from backend.app import models  # noqa: F401, E402
+
+# Импорты моделей и базы
+from backend.app.database import Base  # noqa: E402
+
+# Alembic Config
 config = context.config
-if config.config_file_name is not None:
-    fileConfig(config.config_file_name)
+fileConfig(config.config_file_name)
 
-# --- Подключение к БД ---
-DB_USER = os.getenv("POSTGRES_USER", "admin")
-DB_PASS = quote_plus(os.getenv("POSTGRES_PASSWORD", "admin"))
-DB_HOST = os.getenv("POSTGRES_HOST", "db")
-DB_PORT = os.getenv("POSTGRES_PORT", "5432")
-DB_NAME = os.getenv("POSTGRES_DB", "legal_assistant_db")
-
-SQLALCHEMY_URL = (
-    f"postgresql+psycopg2://{DB_USER}:{DB_PASS}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
-)
-
-# 👉 Записываем URL напрямую в attributes, а не через set_main_option
-config.attributes["sqlalchemy.url"] = SQLALCHEMY_URL
-
-# --- Импорт моделей ---
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-from backend.app.database import Base  # noqa
-
+# Метаданные моделей для автогенерации
 target_metadata = Base.metadata
 
 
-def run_migrations_offline():
-    """Запуск миграций без подключения к БД (генерация SQL)."""
-    url = config.attributes.get("sqlalchemy.url")
+def get_database_url() -> str:
+    url = os.getenv("DATABASE_URL")
+    if not url:
+        raise RuntimeError("❌ DATABASE_URL не найден в окружении")
+    print(f"📌 Alembic использует DATABASE_URL={url}")
+    return url
+
+
+def run_migrations_offline() -> None:
+    """Run migrations in 'offline' mode."""
+    url = get_database_url()
     context.configure(
         url=url,
         target_metadata=target_metadata,
@@ -50,20 +45,13 @@ def run_migrations_offline():
         context.run_migrations()
 
 
-def run_migrations_online():
-    """Запуск миграций с подключением к реальной БД."""
-    connectable = engine_from_config(
-        {"sqlalchemy.url": config.attributes.get("sqlalchemy.url")},
-        prefix="sqlalchemy.",
-        poolclass=pool.NullPool,
-    )
+def run_migrations_online() -> None:
+    """Run migrations in 'online' mode."""
+    url = get_database_url()
+    connectable = create_engine(url, poolclass=pool.NullPool)
 
     with connectable.connect() as connection:
-        context.configure(
-            connection=connection,
-            target_metadata=target_metadata,
-        )
-
+        context.configure(connection=connection, target_metadata=target_metadata)
         with context.begin_transaction():
             context.run_migrations()
 
