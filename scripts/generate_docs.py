@@ -1,7 +1,7 @@
 import sys
 from pathlib import Path
 
-from backend.app.main import app  # импортируем FastAPI-приложение
+from backend.app.main import app
 
 OUTPUT_FILE = Path("docs/API_DOCS.md")
 
@@ -13,7 +13,7 @@ def main():
         sys.stderr.write(f"❌ Ошибка генерации OpenAPI схемы: {e}\n")
         sys.exit(1)
 
-    md = []
+    md: list[str] = []
     md.append("# 📖 API Docs — Legal Assistant Arbitrage v2\n")
     md.append("Сгенерировано автоматически из FastAPI OpenAPI схемы\n\n")
 
@@ -23,15 +23,18 @@ def main():
             summary = details.get("summary", "")
             md.append(f"### {method.upper()}\n")
             md.append(f"- **Описание:** {summary}\n")
+
             if "parameters" in details:
                 md.append("#### Параметры:\n")
                 for p in details["parameters"]:
                     md.append(
                         f"- `{p['name']}` ({p['in']}): {p.get('description', '')}"
                     )
+
             if "requestBody" in details:
                 md.append("#### Тело запроса:\n")
                 md.append("```json\nпример данных...\n```\n")
+
             if "responses" in details:
                 md.append("#### Ответы:\n")
                 for code, resp in details["responses"].items():

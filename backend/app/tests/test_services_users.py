@@ -1,45 +1,56 @@
 import pytest
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import Session
 
 from backend.app import models, schemas
-from backend.app.database import Base
-from backend.app.services import users as user_service
+from backend.app.services import users
 
 
-@pytest.fixture(scope="function")
-def db_session():
-    engine = create_engine("sqlite:///:memory:", echo=False, future=True)
-    TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-    Base.metadata.create_all(bind=engine)
-    session = TestingSessionLocal()
-    yield session
-    session.close()
-
-
-def test_create_user(db_session):
+def test_create_user(db_session: Session):
     user_in = schemas.UserCreate(
-        username="testuser", password="123", role=schemas.UserRole.client
+        username="user1",
+        password="pwd123",
+        role=schemas.UserRole.lawyer,  # ✅ теперь это доступно
     )
-    user = user_service.create_user(db_session, user_in)
+    user = users.create_user(db_session, user_in)
     assert user.id is not None
-    assert user.username == "testuser"
+    assert user.username == "user1"
+    assert user.role == schemas.UserRole.lawyer
 
 
-def test_update_user(db_session):
+def test_read_users(db_session: Session):
     user_in = schemas.UserCreate(
-        username="user1", password="pwd", role=schemas.UserRole.lawyer
+        username="user2",
+        password="pwd123",
+        role=schemas.UserRole.user,
     )
-    user = user_service.create_user(db_session, user_in)
-    update_data = schemas.UserUpdate(username="updateduser")
-    updated_user = user_service.update_user(db_session, user.id, update_data)
-    assert updated_user.username == "updateduser"
+    users.create_user(db_session, user_in)
+
+    result = users.get_users(db_session)
+    assert any(u.username == "user2" for u in result)
 
 
-def test_delete_user(db_session):
+def test_update_user(db_session: Session):
     user_in = schemas.UserCreate(
-        username="user2", password="pwd", role=schemas.UserRole.client
+        username="user3",
+        password="pwd123",
+        role=schemas.UserRole.lawyer,
     )
-    user = user_service.create_user(db_session, user_in)
-    user_service.delete_user(db_session, user.id)
-    assert db_session.query(models.User).filter_by(id=user.id).first() is None
+    user = users.create_user(db_session, user_in)
+
+    update_in = schemas.UserUpdate(username="updated_user3")
+    updated_user = users.update_user(db_session, user.id, update_in)
+
+    assert updated_user.username == "updated_user3"
+
+
+def test_delete_user(db_session: Session):
+    user_in = schemas.UserCreate(
+        username="user4",
+        password="pwd123",
+        role=schemas.UserRole.user,
+    )
+    user = users.create_user(db_session, user_in)
+
+    users.delete_user(db_session, user.id)
+    result = users.get_users(db_session)
+    assert all(u.id != user.id for u in result)

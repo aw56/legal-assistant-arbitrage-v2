@@ -1,0 +1,133 @@
+diff --git a/backend/app/core/enums.py b/backend/app/core/enums.py
+new file mode 100644
+index 0000000..c1d2d21
+--- /dev/null
++++ b/backend/app/core/enums.py
+@@ -0,0 +1,12 @@
++from enum import Enum
++
++
++class UserRole(str, Enum):
++    """Единый Enum для ролей пользователей"""
++    admin = "admin"
++    lawyer = "lawyer"
++    user = "user"
++    client = "client"
++
++__all__ = ["UserRole"]
++
+diff --git a/backend/app/schemas/law.py b/backend/app/schemas/law.py
+index 5f278f3..38b3451 100644
+--- a/backend/app/schemas/law.py
++++ b/backend/app/schemas/law.py
+@@ -7,12 +7,13 @@
+
+
+ class LawBase(BaseModel):
+-    code: str
+-    article: str
+-    title: str
++    code: str
++    article: str
++    title: str
+
+
+ class LawCreate(LawBase):
+-    text: str | None = None
++    text: str | None = None
++    description: str | None = None
+
+
+ class Law(LawBase):
+diff --git a/backend/app/schemas/user.py b/backend/app/schemas/user.py
+index 0508d19..07cb0c0 100644
+--- a/backend/app/schemas/user.py
++++ b/backend/app/schemas/user.py
+@@ -3,16 +3,11 @@
+
+ from pydantic import BaseModel, EmailStr
+ from enum import Enum
+-
+-
+-# --- Enum для ролей ---
+-class UserRole(str, Enum):
+-    admin = "admin"
+-    lawyer = "lawyer"
+-    user = "user"
+-    client = "client"
++
++from backend.app.core.enums import UserRole
+
+
+ # --- Базовая схема пользователя ---
+ class UserBase(BaseModel):
+     username: str
+diff --git a/backend/app/models.py b/backend/app/models.py
+index 8d463fb..5b7c4e5 100644
+--- a/backend/app/models.py
++++ b/backend/app/models.py
+@@ -1,6 +1,7 @@
+ from datetime import datetime
+
+ from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Text
++from backend.app.core.enums import UserRole
+ from sqlalchemy.orm import relationship
+ from sqlalchemy.dialects.postgresql import ENUM
+
+@@ -13,7 +14,7 @@
+
+ class User(Base):
+     __tablename__ = "users"
+-    role = Column(String, default="client", nullable=False)
++    role = Column(ENUM(UserRole, name="userrole_enum"), default=UserRole.client, nullable=False)
+     id = Column(Integer, primary_key=True, index=True)
+     username = Column(String, unique=True, index=True, nullable=False)
+     email = Column(String, unique=True, index=True, nullable=True)
+diff --git a/backend/app/routes/auth.py b/backend/app/routes/auth.py
+index 49a83a4..bf3b37a 100644
+--- a/backend/app/routes/auth.py
++++ b/backend/app/routes/auth.py
+@@ -1,6 +1,9 @@
+ from fastapi import APIRouter, Depends, HTTPException, status
+ from sqlalchemy.orm import Session
++from pydantic import BaseModel
+
+ from backend.app.database import get_db
+ from backend.app import models, schemas
++from backend.app.services import users as user_service
++from backend.app.core.security import create_access_token, verify_password
+
+ router = APIRouter()
+
+@@ -9,3 +12,40 @@
+ @router.get("/me")
+ async def read_users_me():
+     return {"msg": "Current user endpoint (TODO)"}
++
++
++# --- Register ---
++@router.post("/register", response_model=schemas.UserRead)
++def register(user_in: schemas.UserCreate, db: Session = Depends(get_db)):
++    existing = db.query(models.User).filter(models.User.username == user_in.username).first()
++    if existing:
++        raise HTTPException(status_code=400, detail="Username already registered")
++    user = user_service.create_user(db, user_in)
++    return user
++
++
++# --- Login ---
++class LoginForm(BaseModel):
++    username: str
++    password: str
++
++
++@router.post("/login")
++def login(form_data: LoginForm, db: Session = Depends(get_db)):
++    user = db.query(models.User).filter(models.User.username == form_data.username).first()
++    if not user:
++        raise HTTPException(status_code=401, detail="Invalid credentials")
++    if not verify_password(form_data.password, user.password_hash):
++        raise HTTPException(status_code=401, detail="Invalid credentials")
++    token = create_access_token({"sub": str(user.id)})
++    return {"access_token": token, "token_type": "bearer"}
++

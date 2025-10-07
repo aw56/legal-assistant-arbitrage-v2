@@ -1,0 +1,74 @@
+🔥 Отличная идея — шпаргалка избавит тебя от постоянного гугления синтаксиса `scp` и `pscp`.
+Собрал для тебя **мини-шпаргалку по скачиванию `postman_collection.json`/`.zip` с сервера на локальный Windows через WSL и PuTTY** 👇
+
+---
+
+# 📌 Шпаргалка: Как скачать Postman коллекцию с удалённого Linux сервера на Windows
+
+## 1. 📥 Скачивание через WSL (рекомендуется)
+
+В WSL просто выполняешь команду `scp`, указав путь к файлу на сервере и локальную папку Windows (`/mnt/c/...`):
+
+```bash
+scp admin@82.165.144.150:/home/admin/my_projects/legal-assistant-arbitrage-v2/artifacts/postman_collection.zip /mnt/c/Users/alexe/Downloads/
+```
+
+👉 После этого файл появится на Windows в:
+`C:\Users\alexe\Downloads\postman_collection.zip`
+
+---
+
+## 2. 📥 Скачивание через PuTTY (pscp.exe)
+
+Если работаешь из PowerShell на Windows (без WSL):
+
+```powershell
+pscp.exe admin@82.165.144.150:/home/admin/my_projects/legal-assistant-arbitrage-v2/artifacts/postman_collection.zip C:\Users\alexe\Downloads\
+```
+
+👉 Проверка, что `pscp.exe` доступен:
+
+```powershell
+pscp.exe -V
+```
+
+---
+
+## 3. 📥 Скачивание через HTTP (резервный способ)
+
+Если `scp` не работает, можно поднять временный HTTP-сервер:
+
+```bash
+cd /home/admin/my_projects/legal-assistant-arbitrage-v2/artifacts
+python3 -m http.server 8081
+```
+
+На Windows открываешь браузер:
+
+```
+http://82.165.144.150:8081/postman_collection.zip
+```
+
+И скачиваешь.
+
+---
+
+## 🎯 Быстрая команда для Makefile (WSL → Windows)
+
+Можно добавить в твой `Makefile` цель:
+
+```make
+postman-download-local:
+	scp admin@82.165.144.150:/home/admin/my_projects/legal-assistant-arbitrage-v2/artifacts/postman_collection.zip /mnt/c/Users/alexe/Downloads/
+	@echo "✅ Коллекция скопирована в C:\\Users\\alexe\\Downloads\\postman_collection.zip"
+```
+
+Тогда ты сможешь просто запускать:
+
+```bash
+make postman-download-local
+```
+
+---
+
+Хочешь, я соберу тебе ещё **универсальный блок в Makefile** (где можно будет выбирать — скачать через WSL или через pscp)?

@@ -1,4 +1,5 @@
 import logging
+from datetime import datetime
 
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
@@ -9,18 +10,29 @@ logger = logging.getLogger(__name__)
 
 
 def create_decision(db: Session, decision: schemas.DecisionCreate) -> models.Decision:
-    logger.info("Создание судебного решения: %s", decision.case_number)
-    db_decision = (
+    logger.info("Создание решения: %s", decision.case_number)
+
+    # Проверка уникальности номера дела
+    existing = (
         db.query(models.Decision)
         .filter(models.Decision.case_number == decision.case_number)
         .first()
     )
-    if db_decision:
+    if existing:
         raise HTTPException(
-            status_code=400, detail="❌ Решение с таким номером дела уже существует"
+            status_code=400,
+            detail="❌ Решение с таким номером дела уже существует",
         )
 
-    new_decision = models.Decision(**decision.model_dump())
+    new_decision = models.Decision(
+        case_number=decision.case_number,
+        court=decision.court,
+        date_decided=decision.date_decided or datetime.utcnow(),
+        summary=decision.summary,
+        law_id=decision.law_id,
+        user_id=decision.user_id,
+    )
+
     db.add(new_decision)
     db.commit()
     db.refresh(new_decision)
@@ -44,9 +56,14 @@ def update_decision(
     db: Session, decision_id: int, decision_update: schemas.DecisionUpdate
 ) -> models.Decision:
     decision = get_decision(db, decision_id)
-    logger.info("Обновление судебного решения ID=%s", decision_id)
+    logger.info("Обновление решения ID=%s", decision_id)
+
     for key, value in decision_update.model_dump(exclude_unset=True).items():
         setattr(decision, key, value)
+
+    # ⚡ обновляем timestamp
+    decision.updated_at = datetime.utcnow()
+
     db.commit()
     db.refresh(decision)
     return decision
@@ -54,6 +71,6 @@ def update_decision(
 
 def delete_decision(db: Session, decision_id: int) -> None:
     decision = get_decision(db, decision_id)
-    logger.info("Удаление судебного решения ID=%s", decision_id)
+    logger.info("Удаление решения ID=%s", decision_id)
     db.delete(decision)
     db.commit()

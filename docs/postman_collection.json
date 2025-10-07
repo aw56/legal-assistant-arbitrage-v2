@@ -1,0 +1,527 @@
+{
+  "info": {
+    "name": "Legal Assistant Arbitrage v2",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "GET /",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "http://82.165.144.150:8080/",
+          "protocol": "http",
+          "host": [
+            "82.165.144.150:8080"
+          ],
+          "path": []
+        }
+      }
+    },
+    {
+      "name": "POST /api/auth/register",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "http://82.165.144.150:8080/api/auth/register",
+          "protocol": "http",
+          "host": [
+            "82.165.144.150:8080"
+          ],
+          "path": [
+            "api",
+            "auth",
+            "register"
+          ]
+        }
+      }
+    },
+    {
+      "name": "POST /api/auth/login",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "http://82.165.144.150:8080/api/auth/login",
+          "protocol": "http",
+          "host": [
+            "82.165.144.150:8080"
+          ],
+          "path": [
+            "api",
+            "auth",
+            "login"
+          ]
+        }
+      }
+    },
+    {
+      "name": "GET /api/auth/me",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "http://82.165.144.150:8080/api/auth/me",
+          "protocol": "http",
+          "host": [
+            "82.165.144.150:8080"
+          ],
+          "path": [
+            "api",
+            "auth",
+            "me"
+          ]
+        }
+      }
+    },
+    {
+      "name": "GET /api/decisions/",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "http://82.165.144.150:8080/api/decisions/",
+          "protocol": "http",
+          "host": [
+            "82.165.144.150:8080"
+          ],
+          "path": [
+            "api",
+            "decisions"
+          ]
+        }
+      }
+    },
+    {
+      "name": "POST /api/decisions/",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "http://82.165.144.150:8080/api/decisions/",
+          "protocol": "http",
+          "host": [
+            "82.165.144.150:8080"
+          ],
+          "path": [
+            "api",
+            "decisions"
+          ]
+        }
+      }
+    },
+    {
+      "name": "GET /api/decisions/{decision_id}",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "http://82.165.144.150:8080/api/decisions/{decision_id}",
+          "protocol": "http",
+          "host": [
+            "82.165.144.150:8080"
+          ],
+          "path": [
+            "api",
+            "decisions",
+            "{decision_id}"
+          ]
+        }
+      }
+    },
+    {
+      "name": "PUT /api/decisions/{decision_id}",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "http://82.165.144.150:8080/api/decisions/{decision_id}",
+          "protocol": "http",
+          "host": [
+            "82.165.144.150:8080"
+          ],
+          "path": [
+            "api",
+            "decisions",
+            "{decision_id}"
+          ]
+        }
+      }
+    },
+    {
+      "name": "DELETE /api/decisions/{decision_id}",
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "http://82.165.144.150:8080/api/decisions/{decision_id}",
+          "protocol": "http",
+          "host": [
+            "82.165.144.150:8080"
+          ],
+          "path": [
+            "api",
+            "decisions",
+            "{decision_id}"
+          ]
+        }
+      }
+    },
+    {
+      "name": "GET /api/docs/api/docs/postman",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "http://82.165.144.150:8080/api/docs/api/docs/postman",
+          "protocol": "http",
+          "host": [
+            "82.165.144.150:8080"
+          ],
+          "path": [
+            "api",
+            "docs",
+            "api",
+            "docs",
+            "postman"
+          ]
+        }
+      }
+    },
+    {
+      "name": "GET /api/health",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "http://82.165.144.150:8080/api/health",
+          "protocol": "http",
+          "host": [
+            "82.165.144.150:8080"
+          ],
+          "path": [
+            "api",
+            "health"
+          ]
+        }
+      }
+    },
+    {
+      "name": "GET /api/laws/",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "http://82.165.144.150:8080/api/laws/",
+          "protocol": "http",
+          "host": [
+            "82.165.144.150:8080"
+          ],
+          "path": [
+            "api",
+            "laws"
+          ]
+        }
+      }
+    },
+    {
+      "name": "POST /api/laws/",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "http://82.165.144.150:8080/api/laws/",
+          "protocol": "http",
+          "host": [
+            "82.165.144.150:8080"
+          ],
+          "path": [
+            "api",
+            "laws"
+          ]
+        }
+      }
+    },
+    {
+      "name": "GET /api/laws/{law_id}",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "http://82.165.144.150:8080/api/laws/{law_id}",
+          "protocol": "http",
+          "host": [
+            "82.165.144.150:8080"
+          ],
+          "path": [
+            "api",
+            "laws",
+            "{law_id}"
+          ]
+        }
+      }
+    },
+    {
+      "name": "PUT /api/laws/{law_id}",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "http://82.165.144.150:8080/api/laws/{law_id}",
+          "protocol": "http",
+          "host": [
+            "82.165.144.150:8080"
+          ],
+          "path": [
+            "api",
+            "laws",
+            "{law_id}"
+          ]
+        }
+      }
+    },
+    {
+      "name": "DELETE /api/laws/{law_id}",
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "http://82.165.144.150:8080/api/laws/{law_id}",
+          "protocol": "http",
+          "host": [
+            "82.165.144.150:8080"
+          ],
+          "path": [
+            "api",
+            "laws",
+            "{law_id}"
+          ]
+        }
+      }
+    },
+    {
+      "name": "GET /api/users/",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "http://82.165.144.150:8080/api/users/",
+          "protocol": "http",
+          "host": [
+            "82.165.144.150:8080"
+          ],
+          "path": [
+            "api",
+            "users"
+          ]
+        }
+      }
+    },
+    {
+      "name": "POST /api/users/",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "http://82.165.144.150:8080/api/users/",
+          "protocol": "http",
+          "host": [
+            "82.165.144.150:8080"
+          ],
+          "path": [
+            "api",
+            "users"
+          ]
+        }
+      }
+    },
+    {
+      "name": "GET /api/users/{user_id}",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "http://82.165.144.150:8080/api/users/{user_id}",
+          "protocol": "http",
+          "host": [
+            "82.165.144.150:8080"
+          ],
+          "path": [
+            "api",
+            "users",
+            "{user_id}"
+          ]
+        }
+      }
+    },
+    {
+      "name": "PUT /api/users/{user_id}",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "http://82.165.144.150:8080/api/users/{user_id}",
+          "protocol": "http",
+          "host": [
+            "82.165.144.150:8080"
+          ],
+          "path": [
+            "api",
+            "users",
+            "{user_id}"
+          ]
+        }
+      }
+    },
+    {
+      "name": "DELETE /api/users/{user_id}",
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "http://82.165.144.150:8080/api/users/{user_id}",
+          "protocol": "http",
+          "host": [
+            "82.165.144.150:8080"
+          ],
+          "path": [
+            "api",
+            "users",
+            "{user_id}"
+          ]
+        }
+      }
+    },
+    {
+      "name": "GET /api/docs/postman",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "http://82.165.144.150:8080/api/docs/postman",
+          "protocol": "http",
+          "host": [
+            "82.165.144.150:8080"
+          ],
+          "path": [
+            "api",
+            "docs",
+            "postman"
+          ]
+        }
+      }
+    }
+  ]
+}

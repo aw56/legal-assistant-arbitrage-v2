@@ -1,0 +1,293 @@
+да! и чтобы не терять темп — вот готовый чек-лист, который можно просто пройти по шагам. я сделал его под твой текущий проект (docker + alembic + fastapi + pytest) и учёл все боли, которые всплывали: дубли таблиц, потерянные ревизии, несовпадение схемы с тестами, etc.
+
+# 🚦 Чек-лист тестирования и фикса
+
+## 0) Подготовка окружения
+
+```bash
+# убедись, что образы собраны, контейнеры подняты
+make up
+make ps
+
+# зайти внутрь backend-контейнера при необходимости
+make shell
+```
+
+Ожидаемое: два контейнера в up/healthy: `backend` (api), `legal-assistant-db` (postgres).
+
+---
+
+## 1) Состояние миграций Alembic
+
+```bash
+# показать текущую миграцию в базе
+make current
+
+# посмотреть историю миграций (нижние строки — самые свежие)
+make history
+
+# посмотреть все head-миграции
+make heads
+```
+
+Ожидаемое: вывод без ошибок вида “Can't locate revision …”.
+
+### Если видишь “Can't locate revision …”
+
+```bash
+# сбросить "битую" версию alembic_version (без потери данных)
+docker exec -it legal-assistant-db psql -U admin -d legal_assistant_db -c "DROP TABLE IF EXISTS alembic_version;"
+
+# сгенерировать новую миграцию от актуальных models.py
+make makemigrations m="init fresh schema"
+
+# проставить штамп как применённый (без изменений в БД)
+make stamp-head
+
+# на всякий случай прогнать апгрейд (должно быть no-op)
+make migrate
+```
+
+Ожидаемое: команды проходят без ошибок.
+
+---
+
+## 2) Верификация схемы БД (совместимость с тестами)
+
+Тесты ожидают следующие поля:
+
+* `users`: `id, username, email, hashed_password, role, created_at, updated_at`
+* `laws`: `id, code, title, article, description, created_at, updated_at`
+* `decisions`: `id, case_number, court, date_decided, summary, law_id, user_id, created_at, updated_at`
+
+Проверка одной командой:
+
+```bash
+make db-shell
+```
+
+Внутри `psql`:
+
+```sql
+-- USERS
+SELECT column_name FROM information_schema.columns
+WHERE table_name='users' ORDER BY ordinal_position;
+
+-- LAWS
+SELECT column_name FROM information_schema.columns
+WHERE table_name='laws' ORDER BY ordinal_position;
+
+-- DECISIONS
+SELECT column_name FROM information_schema.columns
+WHERE table_name='decisions' ORDER BY ordinal_position;
+\q
+```
+
+Ожидаемое: перечисленные выше столбцы присутствуют.
+Если `laws.article` или `decisions.date_decided` отсутствуют — обнови `models.py`, сделай:
+
+```bash
+make makemigrations m="add article to laws + date_decided to decisions"
+make migrate
+```
+
+---
+
+## 3) Healthcheck API
+
+```bash
+make health-host        # с хоста
+make health-container   # из контейнера
+```
+
+Ожидаемое:
+
+```json
+{"status":"ok"}
+```
+
+---
+
+## 4) Смоук-тест авторизации (ручной, через curl)
+
+```bash
+# регистрация
+curl -s -X POST http://127.0.0.1:8080/api/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{"username":"alice","password":"secret"}' | jq
+
+# логин (OAuth2PasswordRequestForm)
+curl -s -X POST http://127.0.0.1:8080/api/auth/login \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  -d "username=alice&password=secret" | jq
+```
+
+Ожидаемое:
+
+* `/register` → HTTP 201 и объект пользователя (без пароля).
+* `/login` → HTTP 200 и `{ "access_token": "<JWT>", "token_type": "bearer" }`.
+
+Профиль с JWT:
+
+```bash
+TOKEN=$(curl -s -X POST http://127.0.0.1:8080/api/auth/login \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  -d "username=alice&password=secret" | jq -r .access_token)
+
+curl -s http://127.0.0.1:8080/api/auth/me \
+  -H "Authorization: Bearer $TOKEN" | jq
+```
+
+Ожидаемое: HTTP 200, JSON пользователя.
+
+---
+
+## 5) Смоук-тест CRUD (laws/decisions/users)
+
+### Laws
+
+```bash
+# create
+curl -s -X POST http://127.0.0.1:8080/api/laws/ \
+  -H "Content-Type: application/json" \
+  -d '{"code":"GK","title":"Гражданский кодекс","article":"10","description":"Злоупотребление правом"}' | jq
+
+# list
+curl -s http://127.0.0.1:8080/api/laws/ | jq
+
+# delete (подставь id из create)
+curl -s -X DELETE http://127.0.0.1:8080/api/laws/1 | jq
+```
+
+Ожидаемое: 201 на создание, список содержит запись, 200/204 на удаление.
+
+### Decisions
+
+```bash
+# create (подставь law_id существующего закона)
+curl -s -X POST http://127.0.0.1:8080/api/decisions/ \
+  -H "Content-Type: application/json" \
+  -d '{"case_number":"А40-12345/2020","court":"АС г.Москвы","date_decided":"2020-05-20","summary":"кратко","law_id":1}' | jq
+
+# list
+curl -s http://127.0.0.1:8080/api/decisions/ | jq
+
+# delete
+curl -s -X DELETE http://127.0.0.1:8080/api/decisions/1 | jq
+```
+
+Ожидаемое: 201/200/204 в зависимости от реализации, без ошибок в логах.
+
+### Users (если есть открытые эндпоинты)
+
+```bash
+curl -s http://127.0.0.1:8080/api/users/ | jq
+```
+
+Ожидаемое: список пользователей (часто за auth — см. свои роуты).
+
+---
+
+## 6) Генерация документации
+
+```bash
+make apidocs
+```
+
+Ожидаемое: файл `docs/API_DOCS.md` обновлён, содержит все эндпоинты.
+
+---
+
+## 7) Запуск автотестов
+
+```bash
+# внутри контейнера бекенда:
+make docker-test
+# или:
+make test-verbose
+```
+
+Ожидаемое: все тесты проходят (0 failed). Если не так — см. следующие пункты.
+
+---
+
+## 8) Типовые проблемы и быстрые фиксы
+
+### 🧱 DuplicateTable (“relation ‘users’ already exists”)
+
+Причина: миграция пытается создать уже существующую таблицу.
+Решения:
+
+* Если данные важны — **штампуем** текущую ревизию:
+
+  ```bash
+  make stamp-head
+  make migrate
+  ```
+* Если можно снести схему — полный ресет:
+
+  ```bash
+  make reset-db
+  ```
+
+### 🧩 “Can’t locate revision …”
+
+См. блок 1 → «Если видишь “Can't locate revision …”».
+
+### 🔐 Ошибка bcrypt “password cannot be longer than 72 bytes”
+
+В `security.py` хэшируй только первые 72 байта (у тебя уже учтено). Для логина — сравнение с тем же правилом.
+
+### 📧 ImportError: email-validator
+
+Добавь в `requirements.txt`:
+
+```
+email-validator==2.2.0
+```
+
+и пересобери контейнеры:
+
+```bash
+make rebuild
+```
+
+### 🧬 Несовпадение схемы с тестами (‘article’, ‘date_decided’)
+
+Обнови `models.py` (добавь `Law.article`, `Decision.date_decided`) → `make makemigrations` → `make migrate`.
+
+---
+
+## 9) Быстрый full-run (копи-паст)
+
+```bash
+make up
+make heads
+make current || true
+make history
+
+# если alembic ругается на “Can't locate revision …”
+docker exec -it legal-assistant-db psql -U admin -d legal_assistant_db -c "DROP TABLE IF EXISTS alembic_version;"
+make makemigrations m="init fresh schema"
+make stamp-head
+make migrate
+
+make health-host
+make apidocs
+make docker-test
+```
+
+---
+
+## 10) После фикса — контрольная проверка
+
+* `make history` — в истории есть последняя ревизия.
+* `make current` — выводит актуальную ревизию без ошибок.
+* `/api/health` — `{"status":"ok"}`.
+* Регистрация/логин/профиль — 201/200/200 и валидный JWT.
+* CRUD по `laws/decisions` — создаётся/читается/удаляется.
+* `make docker-test` — тесты зелёные.
+
+---
+
+если хочешь, дополнительно сгенерю тебе маленький скрипт `scripts/smoke.sh`, который прогонит смоук-часть (health + auth + пару CRUD) автоматически и вернёт сводку “ok/failed”. скажи — выдам сразу под твои пути.

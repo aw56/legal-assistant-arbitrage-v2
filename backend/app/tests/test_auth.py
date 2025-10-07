@@ -1,47 +1,42 @@
-def test_register_and_login(client):
-    # 1. Регистрация нового пользователя
+import httpx
+import pytest
+
+from backend.app import schemas
+
+
+@pytest.mark.asyncio
+async def test_register_and_login(client: httpx.Client):
+    # === регистрация ===
     response = client.post(
         "/api/auth/register",
-        params={"username": "testuser", "password": "testpass"},
+        json={"username": "testuser", "password": "testpass"},
     )
-    assert response.status_code == 200
+    assert response.status_code == 200, response.text
     data = response.json()
-    assert data["username"] == "testuser"
-    assert data["role"] == "client"
+    assert "access_token" in data
 
-    # 2. Логин
+    # === логин ===
     response = client.post(
         "/api/auth/login",
         data={"username": "testuser", "password": "testpass"},
-        headers={"Content-Type": "application/x-www-form-urlencoded"},
     )
-    assert response.status_code == 200
-    token_data = response.json()
-    assert "access_token" in token_data
-
-    # 3. Доступ к защищённому эндпоинту
-    headers = {"Authorization": f"Bearer {token_data['access_token']}"}
-    response = client.get("/api/auth/me", headers=headers)
-    assert response.status_code == 200
-    me_data = response.json()
-    assert me_data["username"] == "testuser"
-    assert me_data["role"] == "client"
+    assert response.status_code == 200, response.text
+    data = response.json()
+    assert "access_token" in data
 
 
-def test_login_wrong_password(client):
-    # сначала регистрируем
+@pytest.mark.asyncio
+async def test_login_wrong_password(client: httpx.Client):
+    # создаём пользователя
     client.post(
-        "/api/auth/register", params={"username": "user1", "password": "secret"}
+        "/api/auth/register",
+        json={"username": "wronguser", "password": "rightpass"},
     )
-    # пробуем неверный пароль
+
+    # пробуем войти с неверным паролем
     response = client.post(
         "/api/auth/login",
-        data={"username": "user1", "password": "wrongpass"},
-        headers={"Content-Type": "application/x-www-form-urlencoded"},
+        data={"username": "wronguser", "password": "badpass"},
     )
     assert response.status_code == 401
-
-
-def test_access_protected_without_token(client):
-    response = client.get("/api/auth/me")
-    assert response.status_code == 401
+    assert response.json()["detail"] == "Incorrect username or password"

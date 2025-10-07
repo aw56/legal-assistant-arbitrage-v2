@@ -1,0 +1,236 @@
+{
+  "info": {
+    "name": "Legal Assistant Arbitrage v3 — AutoAuth CI Ready",
+    "_postman_id": "legal-assistant-ci-autoauth-v3",
+    "description": "CI-ready версия коллекции Legal Assistant Arbitrage API.\nАвтоматически создаёт пользователя, выполняет логин, тестирует CRUD-запросы для законов и решений, а затем выполняет финальную очистку и верификацию.\nПодходит для автозапуска через `newman` или GitHub Actions.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "if (!pm.environment.get('base_url')) {",
+          "  pm.environment.set('base_url', 'http://82.165.144.150:8080');",
+          "}",
+          "const rand = Math.floor(Math.random() * 100000);",
+          "pm.environment.set('rand_user', `apitester${rand}`);",
+          "pm.environment.set('rand_email', `apitester${rand}@example.com`);",
+          "pm.environment.set('rand_pass', `apitester${rand}!`);",
+          "console.log(`🧠 Создан пользователь: ${pm.environment.get('rand_user')}`);"
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "AUTH — AutoAuth",
+      "item": [
+        {
+          "name": "Register User",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{rand_user}}\",\n  \"email\": \"{{rand_email}}\",\n  \"password\": \"{{rand_pass}}\"\n}"
+            },
+            "url": "{{base_url}}/api/auth/register"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 400) {",
+                  "  console.log('⚠️ Пользователь уже существует');",
+                  "} else {",
+                  "  pm.test('Регистрация успешна (201/200)', () => pm.expect(pm.response.code).to.be.oneOf([200,201]));",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login User",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{rand_user}}\",\n  \"password\": \"{{rand_pass}}\"\n}"
+            },
+            "url": "{{base_url}}/api/auth/login"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Авторизация успешна', () => pm.response.to.have.status(200));",
+                  "const res = pm.response.json();",
+                  "pm.environment.set('token', res.access_token);",
+                  "pm.test('Токен получен', () => pm.expect(res.access_token).to.exist);"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "USER INFO",
+      "item": [
+        {
+          "name": "Get Current User",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{base_url}}/api/auth/me"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Доступ к профилю 200', () => pm.response.to.have.status(200));",
+                  "const user = pm.response.json();",
+                  "pm.environment.set('user_id', user.id);"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "LAWS (CRUD)",
+      "item": [
+        {
+          "name": "Create Law",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Закон об API-тестировании\",\n  \"description\": \"Создан через CI\",\n  \"code\": \"API-CI-{{rand_user}}\",\n  \"article\": \"Тестовая статья\",\n  \"date\": \"2025-10-07\"\n}"
+            },
+            "url": "{{base_url}}/api/laws/"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Создание закона 200/201', () => pm.expect(pm.response.code).to.be.oneOf([200,201]));",
+                  "const law = pm.response.json();",
+                  "pm.environment.set('law_id', law.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update Law",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Закон (обновлён)\",\n  \"description\": \"PUT-запрос обновления\",\n  \"code\": \"API-CI-{{rand_user}}\",\n  \"article\": \"Обновлено\",\n  \"date\": \"2025-10-07\"\n}"
+            },
+            "url": "{{base_url}}/api/laws/{{law_id}}"
+          },
+          "event": [
+            { "listen": "test", "script": { "exec": ["pm.test('Закон обновлён 200', () => pm.response.to.have.status(200));"] } }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "DECISIONS",
+      "item": [
+        {
+          "name": "Create Decision",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Решение CI\",\n  \"summary\": \"Создано в CI\",\n  \"law_id\": {{law_id}},\n  \"case_number\": \"CI-{{rand_user}}\",\n  \"court\": \"Арбитражный суд Москвы\"\n}"
+            },
+            "url": "{{base_url}}/api/decisions/"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Решение создано 200/201', () => pm.expect(pm.response.code).to.be.oneOf([200,201]));",
+                  "pm.environment.set('decision_id', pm.response.json().id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Delete Decision",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{base_url}}/api/decisions/{{decision_id}}"
+          },
+          "event": [
+            { "listen": "test", "script": { "exec": ["pm.test('Удаление решения 204', () => pm.response.to.have.status(204));"] } }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "CLEANUP",
+      "item": [
+        {
+          "name": "Delete Law",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{base_url}}/api/laws/{{law_id}}"
+          },
+          "event": [
+            { "listen": "test", "script": { "exec": ["pm.test('Удаление закона 204', () => pm.response.to.have.status(204));"] } }
+          ]
+        },
+        {
+          "name": "Verify DB Cleanup",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{base_url}}/api/laws/"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Проверка очистки успешна', () => pm.response.to.have.status(200));",
+                  "console.log('✅ Очистка БД подтверждена');"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

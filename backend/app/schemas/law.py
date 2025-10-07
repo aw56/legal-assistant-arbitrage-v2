@@ -1,5 +1,3 @@
-from datetime import datetime
-
 from pydantic import BaseModel, ConfigDict
 
 
@@ -10,18 +8,18 @@ class LawBase(BaseModel):
 
 
 class LawCreate(LawBase):
-    text: str | None = None
+    description: str | None = None
+
+
+class LawUpdate(BaseModel):
+    # ✅ все поля — опциональные, чтобы можно было менять частично
+    code: str | None = None
+    article: str | None = None
+    title: str | None = None
+    description: str | None = None
 
 
 class Law(LawBase):
     id: int
-    text: str | None = None
-    created_at: datetime
-    updated_at: datetime
-
+    description: str | None = None
     model_config = ConfigDict(from_attributes=True)
-
-
-class LawUpdate(BaseModel):
-    title: str | None = None
-    text: str | None = None

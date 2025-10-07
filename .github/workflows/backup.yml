@@ -1,0 +1,67 @@
+name: 💾 Daily DB Backup
+
+on:
+  schedule:
+    - cron: "0 3 * * *"  # каждый день в 03:00 UTC
+  workflow_dispatch:      # запуск вручную из GitHub Actions
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: admin
+          POSTGRES_PASSWORD: admin
+          POSTGRES_DB: legal_assistant_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U admin -d legal_assistant_db"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    steps:
+      - name: 🛎️ Checkout
+        uses: actions/checkout@v4
+
+      - name: ⏳ Wait for DB
+        run: |
+          for i in {1..20}; do
+            if pg_isready -h localhost -p 5432 -U admin -d legal_assistant_db; then
+              echo "✅ DB is ready"
+              exit 0
+            fi
+            echo "⏳ Waiting for DB..."
+            sleep 5
+          done
+          echo "❌ DB not responding" && exit 1
+
+      - name: 💾 Dump database
+        run: |
+          export PGPASSWORD=admin
+          pg_dump -h localhost -p 5432 -U admin -d legal_assistant_db > db_backup.sql
+          echo "✅ Backup created: db_backup.sql"
+
+      - name: 📦 Upload backup as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: db-backup-${{ github.run_id }}
+          path: db_backup.sql
+
+      # Если захочешь в S3/MinIO:
+      - name: ☁️ Upload to S3
+        if: ${{ secrets.AWS_ACCESS_KEY_ID != '' }}
+        uses: jakejarvis/s3-sync-action@master
+        with:
+          args: --exact-timestamps
+        env:
+          AWS_S3_BUCKET: ${{ secrets.AWS_S3_BUCKET }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: us-east-1
+          SOURCE_DIR: .
+          DEST_DIR: backups/legal-assistant

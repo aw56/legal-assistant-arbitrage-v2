@@ -1,0 +1,10 @@
+{
+  "name": "Legal Assistant Env",
+  "values": [
+    { "key": "base_url", "value": "", "enabled": true },
+    { "key": "token", "value": "", "enabled": true },
+    { "key": "law_id", "value": "", "enabled": true },
+    { "key": "decision_id", "value": "", "enabled": true },
+    { "key": "user_id", "value": "", "enabled": true }
+  ]
+}

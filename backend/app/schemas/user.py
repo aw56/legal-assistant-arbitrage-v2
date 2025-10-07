@@ -1,33 +1,57 @@
 from datetime import datetime
 from enum import Enum
+from typing import Optional
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, EmailStr
 
 
 class UserRole(str, Enum):
     admin = "admin"
     lawyer = "lawyer"
+    user = "user"
     client = "client"
 
 
 class UserBase(BaseModel):
     username: str
-    role: UserRole
+    email: EmailStr
+    role: UserRole = UserRole.user
 
 
 class UserCreate(UserBase):
-    password: str
+    password: str  # ✅ при регистрации получаем пароль в открытом виде
+
+
+class UserUpdate(BaseModel):
+    username: Optional[str] = None
+    email: Optional[EmailStr] = None
+    role: Optional[UserRole] = None
+    password: Optional[str] = None
 
 
 class UserRead(UserBase):
     id: int
-    created_at: datetime
-    updated_at: datetime
+    created_at: Optional[datetime] = None
 
-    model_config = ConfigDict(from_attributes=True)
+    model_config = {"from_attributes": True}
 
 
-class UserUpdate(BaseModel):
-    username: str | None = None
-    role: UserRole | None = None
-    password: str | None = None
+class UserLogin(BaseModel):
+    username: str
+    password: str
+
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+
+
+__all__ = [
+    "UserRole",
+    "UserBase",
+    "UserCreate",
+    "UserUpdate",
+    "UserRead",
+    "UserLogin",
+    "Token",
+]

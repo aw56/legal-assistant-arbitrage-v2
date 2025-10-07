@@ -1,0 +1,230 @@
+{
+  "info": {
+    "name": "Legal Assistant Arbitrage v2 — AutoAuth Full CRUD v2",
+    "_postman_id": "b05e71b4-legal-api-suite-autoauth-v2",
+    "description": "Автономная Postman-коллекция для полного тестирования API Legal Assistant Arbitrage v2. Полностью автоматизирует регистрацию, авторизацию, CRUD для Laws и Decisions, а также очистку данных. Все ID и токен сохраняются в окружение.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "exec": [
+          "if (!pm.environment.get('base_url')) {",
+          "  pm.environment.set('base_url', 'http://82.165.144.150:8080');",
+          "  console.log('✅ base_url установлен по умолчанию');",
+          "}",
+          "",
+          "// Генерация случайных значений для пользователя",
+          "const suffix = Math.floor(Math.random() * 10000);",
+          "pm.environment.set('rand_user', `apitester${suffix}`);",
+          "pm.environment.set('rand_email', `apitester${suffix}@example.com`);",
+          ""
+        ],
+        "type": "text/javascript"
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "AUTH — AutoAuth",
+      "item": [
+        {
+          "name": "Register User",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{rand_user}}\",\n  \"email\": \"{{rand_email}}\",\n  \"password\": \"apitester123\"\n}"
+            },
+            "url": "{{base_url}}/api/auth/register"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 400 && pm.response.json().detail?.includes('Username already registered')) {",
+                  "  console.log('ℹ️ Пользователь уже существует, пропускаем регистрацию.');",
+                  "} else {",
+                  "  pm.test('Регистрация 200/201', () => pm.expect(pm.response.code).to.be.oneOf([200,201]));",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login User",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{rand_user}}\",\n  \"password\": \"apitester123\"\n}"
+            },
+            "url": "{{base_url}}/api/auth/login"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Авторизация успешна', () => pm.response.to.have.status(200));",
+                  "const data = pm.response.json();",
+                  "pm.environment.set('token', data.access_token);",
+                  "pm.test('Токен сохранён', () => pm.expect(data.access_token).to.exist);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Current User",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{base_url}}/api/auth/me"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Профиль пользователя 200', () => pm.response.to.have.status(200));",
+                  "const user = pm.response.json();",
+                  "pm.environment.set('user_id', user.id);",
+                  "console.log('👤 user_id:', user.id);"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "LAWS (CRUD)",
+      "item": [
+        {
+          "name": "Create Law",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Закон об автоматизации API\",\n  \"description\": \"Создан автоматически через Postman\",\n  \"code\": \"API-{{rand_user}}\",\n  \"article\": \"Статья 1. Проверка CRUD.\",\n  \"date\": \"2025-10-07\"\n}"
+            },
+            "url": "{{base_url}}/api/laws/"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Закон создан 200/201', () => pm.expect(pm.response.code).to.be.oneOf([200,201]));",
+                  "const law = pm.response.json();",
+                  "pm.environment.set('law_id', law.id);",
+                  "console.log('📘 law_id:', law.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update Law",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Закон об автоматизации API (обновлён)\",\n  \"description\": \"PUT запрос.\",\n  \"code\": \"API-{{rand_user}}\",\n  \"article\": \"Обновлено через Postman\",\n  \"date\": \"2025-10-07\"\n}"
+            },
+            "url": "{{base_url}}/api/laws/{{law_id}}"
+          },
+          "event": [
+            { "listen": "test", "script": { "exec": ["pm.test('Закон обновлён 200', () => pm.response.to.have.status(200));"] } }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "DECISIONS (linked with law_id)",
+      "item": [
+        {
+          "name": "Create Decision",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Решение суда по API\",\n  \"summary\": \"Создано автоматически для проверки связи с законом.\",\n  \"law_id\": {{law_id}},\n  \"case_number\": \"A-{{rand_user}}\",\n  \"court\": \"Арбитражный суд Москвы\"\n}"
+            },
+            "url": "{{base_url}}/api/decisions/"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Решение создано 200/201', () => pm.expect(pm.response.code).to.be.oneOf([200,201]));",
+                  "const d = pm.response.json();",
+                  "pm.environment.set('decision_id', d.id);",
+                  "console.log('⚖️ decision_id:', d.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Delete Decision",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{base_url}}/api/decisions/{{decision_id}}"
+          },
+          "event": [
+            { "listen": "test", "script": { "exec": ["pm.test('Решение удалено 204', () => pm.response.to.have.status(204));"] } }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "CLEANUP",
+      "item": [
+        {
+          "name": "Delete Law (Cleanup)",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{base_url}}/api/laws/{{law_id}}"
+          },
+          "event": [
+            { "listen": "test", "script": { "exec": ["pm.test('Закон удалён 204', () => pm.response.to.have.status(204));"] } }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "HEALTH",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": { "method": "GET", "url": "{{base_url}}/api/health" },
+          "event": [
+            { "listen": "test", "script": { "exec": ["pm.test('API живой (200)', () => pm.response.to.have.status(200));"] } }
+          ]
+        }
+      ]
+    }
+  ]
+}
