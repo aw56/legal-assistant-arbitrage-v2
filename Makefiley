@@ -256,17 +256,15 @@ git-reset-soft: ## 📝 Soft reset
 	git reset --soft origin/main
 
 # === GitHub Sync ===
-.PHONY: sync-github
 sync-github:
-	@echo "🔄 Проверка статуса репозитория..."
+	@echo "🔄 Checking sync with GitHub..."
+	git fetch origin
 	git status
-	@echo "📦 Добавление изменений..."
-	git add .
-	@echo "📝 Коммит..."
-	git commit -m "🔄 auto-sync: $$(date '+%Y-%m-%d %H:%M:%S')" || echo "⚠️ Нет изменений для коммита."
-	@echo "🚀 Push на GitHub..."
-	git push origin main
-	@echo "✅ Синхронизация завершена!"
+	@echo ""
+	@echo "🧩 Recent commits (local):"
+	git log --oneline -5 | sed 's/^/   /'
+	@echo ""
+	@echo "🌐 View remote commits: https://github.com/aw56/legal-assistant-arbitrage-v2/commits/main"
 
 # ================================
 # ✅ Тесты
