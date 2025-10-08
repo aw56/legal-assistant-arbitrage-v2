@@ -421,15 +421,70 @@ postman-api-route: ## ⚙️ Добавить /api/docs/postman эндпоинт
 	@echo 'app.include_router(docs.router)'
 
 # === Postman / Newman CI тестирование ===
-
+#
 # Генерация CI-отчёта Postman
-test-ci:
-	@echo "🚀 Запуск Newman CI тестов (AutoAuth, CRUD, Cleanup)..."
-	newman run docs/Legal_Assistant_Arbitrage_v3_CI.postman_collection.json \
+#test-ci:
+#	@echo "🚀 Запуск Newman CI тестов (AutoAuth, CRUD, Cleanup)..."
+#	newman run docs/Legal_Assistant_Arbitrage_v3_CI.postman_collection.json \
+#	  -e docs/Legal_Assistant_Env.postman_environment.json \
+#	  --reporters cli,html \
+#	  --reporter-html-export artifacts/newman_report.html
+#	@echo "✅ Отчёт создан: artifacts/newman_report.html"
+
+# ===========================================
+# 🧪 Postman CI v3.1 — AutoAuth Full Pipeline
+# ===========================================
+
+test-ci-v31: ## 🚀 Прогон AutoAuth тестов (v3.1) через Postman + Newman
+	@echo "🚀 Запуск Newman CI тестов (AutoAuth v3.1, CRUD, Cleanup)..."
+	@mkdir -p artifacts
+	newman run docs/Legal_Assistant_Arbitrage_v3.1_CI.postman_collection.json \
 	  -e docs/Legal_Assistant_Env.postman_environment.json \
 	  --reporters cli,html \
-	  --reporter-html-export artifacts/newman_report.html
-	@echo "✅ Отчёт создан: artifacts/newman_report.html"
+	  --reporter-html-export artifacts/newman_report_v31.html || { \
+	    echo "❌ Ошибка во время выполнения тестов (см. отчёт в artifacts/newman_report_v31.html)"; exit 1; }
+	@echo ""
+	@echo "✅ CI-тесты (v3.1) успешно выполнены. Отчёт сохранён:"
+	@echo "   📄 artifacts/newman_report_v31.html"
+
+# ================================
+# 🧪 CI Postman Tests (AutoAuth v3.2)
+# ================================
+
+test-ci-v32: ## 🧩 Прогон Postman CI-тестов v3.2 (AutoAuth, CRUD, Cleanup, Fix law_id)
+	@echo "🚀 Запуск Newman CI тестов (AutoAuth v3.2, CRUD, Cleanup, Fix law_id)..."
+	newman run docs/Legal_Assistant_Arbitrage_v3.2_CI.postman_collection.json \
+	  -e docs/Legal_Assistant_Env.postman_environment.json \
+	  --reporters cli,html \
+	  --reporter-html-export artifacts/newman_report_v32.html || { \
+	    echo "❌ Ошибка во время выполнения тестов (см. отчёт в artifacts/newman_report_v32.html)"; exit 1; }
+	@echo ""
+	@echo "✅ Тестирование завершено! Отчёт сохранён в artifacts/newman_report_v32.html"
+
+# 🧪 CI-тесты AutoAuth v3.3 (исправлено полностью)
+test-ci-v33: ## 🚀 Запуск CI-тестов Postman (AutoAuth v3.3 Stable)
+	@echo "🚀 Запуск Newman CI тестов (AutoAuth v3.3, CRUD, Cleanup — Stable)..."
+	newman run docs/Legal_Assistant_Arbitrage_v3.3_CI.postman_collection.json \
+		-e docs/Legal_Assistant_Env.postman_environment.json \
+		--reporters cli,html \
+		--reporter-html-export artifacts/newman_report_v33.html || { \
+			echo '❌ Ошибка во время тестов (см. artifacts/newman_report_v33.html)'; exit 1; }
+# =================================
+# ---- KAD integration helpers ----
+# =================================
+.PHONY: kad-test kad-lint kad-env-example
+
+kad-test:
+	@pytest -q backend/app/tests/test_kad_api.py -vv
+
+kad-lint:
+	@ruff check backend/app/integrations/kad_api.py backend/app/tests/test_kad_api.py
+
+kad-env-example:
+	@echo "KAD_BASE_URL=https://kad.arbitr.ru"; \
+	echo "KAD_API_KEY=your_token_here"; \
+	echo "KAD_TIMEOUT_S=15"; \
+	echo "KAD_MAX_RETRIES=2"
 
 # ================================
 # 📖 Help
