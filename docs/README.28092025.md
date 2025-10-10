@@ -38,7 +38,6 @@
 ---
 
 ## 📁 Структура проекта
-
 ```
 
 legal-assistant-arbitrage-v2/
@@ -47,26 +46,26 @@ legal-assistant-arbitrage-v2/
 ├── Dockerfile
 ├── Makefile
 ├── backend/
-│   ├── alembic/              # миграции
-│   └── app/
-│       ├── database.py
-│       ├── main.py
-│       ├── models.py
-│       ├── routes/           # health, users, laws, decisions
-│       ├── schemas/          # Pydantic-схемы
-│       ├── services/         # бизнес-логика (на будущее)
-│       └── tests/            # pytest
+│ ├── alembic/ # миграции
+│ └── app/
+│ ├── database.py
+│ ├── main.py
+│ ├── models.py
+│ ├── routes/ # health, users, laws, decisions
+│ ├── schemas/ # Pydantic-схемы
+│ ├── services/ # бизнес-логика (на будущее)
+│ └── tests/ # pytest
 ├── docker-compose.prod.yml
 ├── docker-compose.yml
 ├── docs/
-│   ├── DEPLOY.md
-│   ├── LOCAL_DEV.md
-│   ├── README.v2.md
-│   └── TROUBLESHOOTING.md
+│ ├── DEPLOY.md
+│ ├── LOCAL_DEV.md
+│ ├── README.v2.md
+│ └── TROUBLESHOOTING.md
 ├── pytest.ini
 ├── requirements.txt
 ├── scripts/
-│   └── generate_openapi_json.py
+│ └── generate_openapi_json.py
 └── wait-for-db.sh
 
 ````
@@ -115,7 +114,7 @@ USE_SQLITE=1
 POSTGRES_USER=admin
 POSTGRES_PASSWORD=Admin@2025!
 POSTGRES_DB=legal_assistant_db
-POSTGRES_HOST=localhost
+POSTGRES_HOST=��api.legal.local
 POSTGRES_PORT=5432
 
 # JWT и безопасность
@@ -127,7 +126,7 @@ ACCESS_TOKEN_EXPIRE_MINUTES=30
 OPENAPI_JSON_PATH=docs/openapi.json
 
 # Логирование
-LOG_LEVEL=DEBUG
+LOG_LEVEL=��INFO
 ```
 
 ---
@@ -162,8 +161,8 @@ make run-bg
 
 Доступ:
 
-* Swagger UI → [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
-* Healthcheck → [http://127.0.0.1:8000/api/health](http://127.0.0.1:8000/api/health)
+- Swagger UI → [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
+- Healthcheck → [http://127.0.0.1:8000/api/health](http://127.0.0.1:8000/api/health)
 
 ---
 
@@ -201,8 +200,8 @@ make test
 
 ### Результат
 
-* ✅ Все тесты должны проходить (`10 passed`).
-* ⚠️ Возможны предупреждения от **SQLAlchemy** (`Query.get`) и **Pydantic** (`dict`/`Config`).
+- ✅ Все тесты должны проходить (`10 passed`).
+- ⚠️ Возможны предупреждения от **SQLAlchemy** (`Query.get`) и **Pydantic** (`dict`/`Config`).
 
 ---
 
@@ -210,9 +209,9 @@ make test
 
 CI (GitHub Actions):
 
-* линтеры
-* pytest (SQLite)
-* автогенерация OpenAPI → `docs/API_DOCS.md`
+- линтеры
+- pytest (SQLite)
+- автогенерация OpenAPI → `docs/API_DOCS.md`
 
 CD (черновик):
 
@@ -224,16 +223,16 @@ docker compose -f docker-compose.prod.yml up -d --build
 
 ## 📊 Логи и мониторинг
 
-* Логи пишутся в `server.log`.
-* Для продакшена: **Sentry** (ошибки), **Prometheus** (метрики).
+- Логи пишутся в `server.log`.
+- Для продакшена: **Sentry** (ошибки), **Prometheus** (метрики).
 
 ---
 
 ## 🔐 Роли пользователей
 
-* **admin** → полный доступ, управление пользователями и базой.
-* **lawyer** → работа с запросами, анализ, добавление практики.
-* **client** → подача запросов, просмотр результатов.
+- **admin** → полный доступ, управление пользователями и базой.
+- **lawyer** → работа с запросами, анализ, добавление практики.
+- **client** → подача запросов, просмотр результатов.
 
 ---
 
@@ -264,9 +263,9 @@ kill -9 <PID>
 
 ### Контейнеры перезапускаются в цикле
 
-* Проверь `.env`
-* Убедись, что `POSTGRES_DB=legal_assistant_db`
-* Удали volume и пересоздай:
+- Проверь `.env`
+- Убедись, что `POSTGRES_DB=legal_assistant_db`
+- Удали volume и пересоздай:
 
 ```bash
 docker compose -f docker-compose.prod.yml down -v
@@ -275,22 +274,22 @@ docker compose -f docker-compose.prod.yml up --build -d
 
 ### Ошибка: `psycopg2.OperationalError: connection refused`
 
-* Используй SQLite (`USE_SQLITE=1`)
-* Или проверь, что Postgres запущен.
+- Используй SQLite (`USE_SQLITE=1`)
+- Или проверь, что Postgres запущен.
 
 ---
 
 ## 🛣️ Дорожная карта
 
-* ✅ CRUD (users, laws, decisions)
-* ✅ Healthcheck
-* ✅ Тесты (SQLite)
-* ✅ Docker (dev + prod)
-* ✅ CI (pytest + автодок)
-* ⏩ Импорт нормативной базы
-* ⏩ Планировщик обновлений
-* ⏩ Интеграция с Telegram/CRM
-* ⏩ Продвинутый анализ
+- ✅ CRUD (users, laws, decisions)
+- ✅ Healthcheck
+- ✅ Тесты (SQLite)
+- ✅ Docker (dev + prod)
+- ✅ CI (pytest + автодок)
+- ⏩ Импорт нормативной базы
+- ⏩ Планировщик обновлений
+- ⏩ Интеграция с Telegram/CRM
+- ⏩ Продвинутый анализ
 
 ---
 
@@ -362,5 +361,6 @@ git push -u origin main
 
 Хочешь, я сразу вынесу разделы **Git setup** и **GitHub подключение** в отдельный `docs/GIT_SETUP.md`, а в README оставить только краткую ссылку?
 ```
+
 <!-- test commit for CI/CD -->
 <!-- test commit for CI/CD -->

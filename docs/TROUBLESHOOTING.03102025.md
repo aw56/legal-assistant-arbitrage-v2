@@ -2,18 +2,18 @@
 
 # 1) Краткий итог
 
-* ✅ Backend поднят в Docker, внешний доступ по `http://<ваш_IP>:8080` работает.
-* ✅ БД PostgreSQL и миграции Alembic применяются.
-* ✅ Базовые эндпоинты живы: `/api/health`, `/api/auth/register`, `/api/auth/login`, `/api/auth/me`.
-* ✅ Регистрация → логин → запрос текущего пользователя с JWT — проходит.
-* ✅ Postman-коллекция собрана, окружение настроено (base_url, access_token), все три запроса проверены.
+- ✅ Backend поднят в Docker, внешний доступ по `http://<ваш_IP>:8080` работает.
+- ✅ БД PostgreSQL и миграции Alembic применяются.
+- ✅ Базовые эндпоинты живы: `/api/health`, `/api/auth/register`, `/api/auth/login`, `/api/auth/me`.
+- ✅ Регистрация → логин → запрос текущего пользователя с JWT — проходит.
+- ✅ Postman-коллекция собрана, окружение настроено (base_url, access_token), все три запроса проверены.
 
 # 2) Архитектура развертывания (prod compose)
 
-* Контейнер **backend** (Uvicorn) слушает **8000** внутри контейнера.
-* На хосте проброшен порт **8080 → 8000** (см. `docker-compose.prod.yml`).
-* БД **PostgreSQL** в отдельном контейнере, том `pgdata`.
-* Доступ снаружи — только на 8080/TCP. **Важно:** провайдерский FW должен пропускать 8080 к вашему серверу.
+- Контейнер **backend** (Uvicorn) слушает **8000** внутри контейнера.
+- На хосте проброшен порт **8080 → 8000** (см. `docker-compose.prod.yml`).
+- БД **PostgreSQL** в отдельном контейнере, том `pgdata`.
+- Доступ снаружи — только на 8080/TCP. **Важно:** провайдерский FW должен пропускать 8080 к вашему серверу.
 
 # 3) Хронология/симптомы → причины → решения
 
@@ -23,9 +23,9 @@
 **Причина:** порт **8080** был закрыт на **FW провайдера**.
 **Решение:**
 
-* Открыть 8080/TCP в панели провайдера (и/или в облачном сетевом ACL).
-* Проверить UFW/iptables на самом сервере (если включены).
-* Проверка: `curl http://127.0.0.1:8080/api/health` на сервере и из внешней сети браузером.
+- Открыть 8080/TCP в панели провайдера (и/или в облачном сетевом ACL).
+- Проверить UFW/iptables на самом сервере (если включены).
+- Проверка: `curl http://127.0.0.1:8080/api/health` на сервере и из внешней сети браузером.
 
 ## 3.2. Контейнер backend перезапускался (SyntaxError)
 
@@ -95,8 +95,8 @@ new_user = models.User(
 **Причина:** несогласованность между тем, что кладём в `sub` и тем, как это читаем.
 **Решение (рабочий вариант):**
 
-* На логине генерим токен с `sub = username`.
-* В `get_current_user` читаем `sub` как **username** и ищем юзера по `username`.
+- На логине генерим токен с `sub = username`.
+- В `get_current_user` читаем `sub` как **username** и ищем юзера по `username`.
 
 После правок `/api/auth/me` начал возвращать:
 
@@ -170,8 +170,8 @@ docker exec -it legal-assistant-db psql -U admin -d legal_assistant_db -c "\dt"
 
 ## 5.1. Окружение
 
-* `base_url`: `http://<ваш_IP>:8080`
-* `access_token`: пусто (заполняется автоматически после логина)
+- `base_url`: `http://<ваш_IP>:8080`
+- `access_token`: пусто (заполняется автоматически после логина)
 
 ## 5.2. Коллекция запросов
 
@@ -179,19 +179,18 @@ docker exec -it legal-assistant-db psql -U admin -d legal_assistant_db -c "\dt"
    Body (JSON):
 
    ```json
-   { "username": "testuser", "email": "test@example.com", "password": "123456" }
+   { "username": ��"apitest", "email": "test@example.com", "password": "123456" }
    ```
 
    Ожидаемые ответы:
-
-   * `200` — создан пользователь;
-   * `400 {"detail":"Username already registered"}` — если уже есть.
+   - `200` — создан пользователь;
+   - `400 {"detail":"Username already registered"}` — если уже есть.
 
 2. **POST** `{{base_url}}/api/auth/login`
    Body (JSON):
 
    ```json
-   { "username": "testuser", "password": "123456" }
+   { "username": ��"apitest", "password": "123456" }
    ```
 
    В **Tests**:
@@ -206,33 +205,32 @@ docker exec -it legal-assistant-db psql -U admin -d legal_assistant_db -c "\dt"
 
 ## 5.3. Типичные статусы/ошибки
 
-* `400 Username already registered` — регистрация дубля.
-* `401 Invalid credentials` — не тот пароль.
-* `401 Неверный или просроченный токен` — отсутствует/битый/просрочен JWT или не передан заголовок `Authorization: Bearer`.
+- `400 Username already registered` — регистрация дубля.
+- `401 Invalid credentials` — не тот пароль.
+- `401 Неверный или просроченный токен` — отсутствует/битый/просрочен JWT или не передан заголовок `Authorization: Bearer`.
 
 # 6) Итоговое состояние кода (ключевые моменты)
 
-* **models.User** содержит поле `password_hash` (обязательно), роли — через `ENUM(UserRole)`.
-* **services/users.py**:
+- **models.User** содержит поле `password_hash` (обязательно), роли — через `ENUM(UserRole)`.
+- **services/users.py**:
+  - проверка уникальности `username` и `email`;
+  - хеширование пароля `passlib` (bcrypt, обрезка до 72 байт);
+  - создание пользователя с `password_hash=...`.
 
-  * проверка уникальности `username` и `email`;
-  * хеширование пароля `passlib` (bcrypt, обрезка до 72 байт);
-  * создание пользователя с `password_hash=...`.
-* **core/security.py**:
+- **core/security.py**:
+  - `create_access_token` кладёт `sub=username` и `exp`;
+  - `get_current_user` читает `sub` как username и вытягивает пользователя из БД.
 
-  * `create_access_token` кладёт `sub=username` и `exp`;
-  * `get_current_user` читает `sub` как username и вытягивает пользователя из БД.
-* **routes/auth.py**:
-
-  * `/register` — создаёт пользователя, возвращает `UserRead`;
-  * `/login` — проверяет пароль, возвращает `{"access_token", "token_type":"bearer"}`;
-  * `/me` — защищённый эндпоинт, возвращает `UserRead` по токену.
+- **routes/auth.py**:
+  - `/register` — создаёт пользователя, возвращает `UserRead`;
+  - `/login` — проверяет пароль, возвращает `{"access_token", "token_type":"bearer"}`;
+  - `/me` — защищённый эндпоинт, возвращает `UserRead` по токену.
 
 # 7) Обновления Makefile (важные)
 
-* **reset-all** разделён на шаги: сначала БД, затем миграции, потом backend; добавлено ожидание готовности БД (иначе `dropdb/createdb` могут упасть).
-* Цели `health-host` и `health-container` помогают быстро проверить, жив ли API.
-* Добавлены удобные цели `ps`, `logs`, `shell`, `db-shell`, `db-tables`, `seed`.
+- **reset-all** разделён на шаги: сначала БД, затем миграции, потом backend; добавлено ожидание готовности БД (иначе `dropdb/createdb` могут упасть).
+- Цели `health-host` и `health-container` помогают быстро проверить, жив ли API.
+- Добавлены удобные цели `ps`, `logs`, `shell`, `db-shell`, `db-tables`, `seed`.
 
 # 8) Рекомендации/дальнейшие шаги
 

@@ -1,5 +1,5 @@
 # ============================================
-# ⚖️ Pre-commit config для Legal Assistant API v2
+# ⚖️ Pre-commit DevOps Suite — Legal Assistant Arbitrage v2
 # ============================================
 
 repos:
@@ -20,7 +20,7 @@ repos:
         language_version: python3.12
         args: [--profile=black]
 
-  # --- Flake8: статический анализ ---
+  # --- flake8: статический анализ Python ---
   - repo: https://github.com/pycqa/flake8
     rev: 7.1.1
     hooks:
@@ -30,7 +30,7 @@ repos:
           - --max-line-length=88
           - --extend-ignore=E203,W503
 
-  # --- Built-in pre-commit: базовые проверки ---
+  # --- Базовые pre-commit проверки ---
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.6.0
     hooks:
@@ -38,3 +38,58 @@ repos:
       - id: end-of-file-fixer
       - id: check-yaml
       - id: check-json
+      - id: check-added-large-files
+      - id: check-merge-conflict
+
+  # --- MarkdownLint: проверка форматирования Markdown ---
+  - repo: https://github.com/igorshubovych/markdownlint-cli
+    rev: v0.41.0
+    hooks:
+      - id: markdownlint
+        name: markdownlint (docs)
+        entry: markdownlint
+        language: node
+        files: \.md$
+
+  # --- Yamllint: валидация YAML (docker-compose, workflows) ---
+  - repo: https://github.com/adrienverge/yamllint
+    rev: v1.35.1
+    hooks:
+      - id: yamllint
+        files: \.(yml|yaml)$
+        args: [-d, "{extends: default, rules: {line-length: disable}}"]
+
+  # --- Detect Secrets: поиск токенов и паролей ---
+  - repo: https://github.com/Yelp/detect-secrets
+    rev: v1.5.0
+    hooks:
+      - id: detect-secrets
+        args: ['--baseline', '.secrets.baseline']
+        exclude: 'tests/|artifacts/|docs/'
+
+  # --- Pytest перед пушем (pre-push) ---
+  - repo: local
+    hooks:
+      - id: run-pytest-before-push
+        name: Run pytest before push
+        entry: bash -c 'pytest --maxfail=1 --disable-warnings -q || exit 1'
+        language: system
+        stages: [pre-push]
+        pass_filenames: false
+
+  # --- Автокоммит после исправлений (Post-commit hook) ---
+  - repo: local
+    hooks:
+      - id: auto-commit-after-fix
+        name: Auto commit after pre-commit fixes
+        entry: bash -c '
+          if git diff --quiet; then
+            echo "[auto-commit-after-fix] Nothing to fix, skipping.";
+          else
+            echo "[auto-commit-after-fix] Detected fixed files, amending commit...";
+            git add -u && git commit --amend --no-edit || true;
+          fi'
+        language: system
+        always_run: true
+        pass_filenames: false
+        stages: [post-commit]

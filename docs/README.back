@@ -387,7 +387,7 @@ import json
 from pathlib import Path
 
 OUTPUT_FILE = Path("docs/API_DOCS.md")
-API_URL = "http://localhost:8000/openapi.json"  # локальный сервер FastAPI
+API_URL = "http://��api.legal.local:8000/openapi.json"  # локальный сервер FastAPI
 
 def main():
     try:

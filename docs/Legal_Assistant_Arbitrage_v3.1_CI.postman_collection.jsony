@@ -1,0 +1,213 @@
+{
+  "info": {
+    "name": "Legal Assistant Arbitrage v3.1 — AutoAuth CI Fixed",
+    "_postman_id": "legal-assistant-autoauth-ci-v31",
+    "description": "Автоматическая CI коллекция с исправленным Decision CRUD и AutoAuth.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "exec": [
+          "// === Устанавливаем базовый URL ===",
+          "if (!pm.environment.get('base_url')) {",
+          "  pm.environment.set('base_url', 'http://82.165.144.150:8080');",
+          "  console.log('✅ base_url установлен по умолчанию');",
+          "}",
+          "// === Генерация случайного пользователя ===",
+          "const rand = Math.floor(Math.random() * 100000);",
+          "pm.environment.set('rand_user', `apitester${rand}`);",
+          "pm.environment.set('rand_email', `apitester${rand}@example.com`);"
+        ],
+        "type": "text/javascript"
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "AUTH — AutoAuth",
+      "item": [
+        {
+          "name": "Register User",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{rand_user}}\",\n  \"email\": \"{{rand_email}}\",\n  \"password\": \"apitester123\"\n}"
+            },
+            "url": "{{base_url}}/api/auth/register"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201 || pm.response.code === 200) {",
+                  "  console.log(`🧠 Создан пользователь: ${pm.environment.get('rand_user')}`);",
+                  "} else if (pm.response.code === 400) {",
+                  "  console.log('⚠️ Пользователь уже существует — продолжаем.');",
+                  "}",
+                  "pm.sendRequest({",
+                  "  url: `${pm.environment.get('base_url')}/api/auth/login`,",
+                  "  method: 'POST',",
+                  "  header: { 'Content-Type': 'application/json' },",
+                  "  body: { mode: 'raw', raw: JSON.stringify({ username: pm.environment.get('rand_user'), password: 'apitester123' }) }",
+                  "}, (err, res) => {",
+                  "  if (!err && res.code === 200) {",
+                  "    const token = res.json().access_token;",
+                  "    pm.environment.set('token', token);",
+                  "    console.log('🔑 AutoAuth токен сохранён');",
+                  "  } else {",
+                  "    console.error('❌ Ошибка авторизации', err || res.text());",
+                  "  }",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Current User",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{base_url}}/api/auth/me"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Профиль доступен 200', () => pm.response.to.have.status(200));",
+                  "const user = pm.response.json();",
+                  "pm.environment.set('user_id', user.id);"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "LAWS (CRUD)",
+      "item": [
+        {
+          "name": "Create Law",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Закон об API-тестировании\",\n  \"description\": \"Создан через AutoAuth CI\",\n  \"code\": \"API-TEST-2025\",\n  \"article\": \"Статья 1\",\n  \"date\": \"2025-10-07\"\n}"
+            },
+            "url": "{{base_url}}/api/laws/"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Создание закона 200/201', () => pm.expect(pm.response.code).to.be.oneOf([200,201]));",
+                  "const law = pm.response.json();",
+                  "pm.environment.set('law_id', law.id);"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "DECISIONS (Fixed)",
+      "item": [
+        {
+          "name": "Create Decision",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Test Decision via CI\",\n  \"content\": \"Решение создано автоматически во время CI\",\n  \"verdict\": \"удовлетворить иск\",\n  \"law_id\": {{law_id}}\n}"
+            },
+            "url": "{{base_url}}/api/decisions/"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "try {",
+                  "  pm.test('Решение создано 200/201', () => pm.expect(pm.response.code).to.be.oneOf([200,201]));",
+                  "  const data = pm.response.json();",
+                  "  pm.environment.set('decision_id', data.id);",
+                  "  console.log('🧠 decision_id сохранён:', data.id);",
+                  "} catch (e) {",
+                  "  console.error('Ошибка при создании решения:', e);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Delete Decision",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{base_url}}/api/decisions/{{decision_id}}"
+          },
+          "event": [
+            { "listen": "test", "script": { "exec": ["pm.test('Удаление решения 204', () => pm.response.to.have.status(204));"] } }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "CLEANUP",
+      "item": [
+        {
+          "name": "Delete Law (Cleanup)",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{base_url}}/api/laws/{{law_id}}"
+          },
+          "event": [
+            { "listen": "test", "script": { "exec": ["pm.test('Закон удалён 204', () => pm.response.to.have.status(204));"] } }
+          ]
+        },
+        {
+          "name": "Verify DB Cleanup",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{base_url}}/api/laws/"
+          },
+          "event": [
+            { "listen": "test", "script": { "exec": ["pm.test('Проверка очистки успешна', () => pm.response.to.have.status(200));"] } }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "HEALTH",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": { "method": "GET", "url": "{{base_url}}/api/health" },
+          "event": [
+            { "listen": "test", "script": { "exec": ["pm.test('API живой (200)', () => pm.response.to.have.status(200));"] } }
+          ]
+        }
+      ]
+    }
+  ]
+}

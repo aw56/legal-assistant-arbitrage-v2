@@ -45,10 +45,10 @@ docs/
 | Ключ          | Значение по умолчанию             | Назначение                |
 | ------------- | --------------------------------- | ------------------------- |
 | `base_url`    | `http://82.165.144.150:8080`      | Базовый URL API           |
-| `token`       | *(генерируется AutoAuth)*         | JWT токен для авторизации |
-| `user_id`     | *(создаётся при /auth/me)*        | ID пользователя           |
-| `law_id`      | *(создаётся при POST /laws)*      | ID созданного закона      |
-| `decision_id` | *(создаётся при POST /decisions)* | ID судебного решения      |
+| `token`       | _(генерируется AutoAuth)_         | JWT токен для авторизации |
+| `user_id`     | _(создаётся при /auth/me)_        | ID пользователя           |
+| `law_id`      | _(создаётся при POST /laws)_      | ID созданного закона      |
+| `decision_id` | _(создаётся при POST /decisions)_ | ID судебного решения      |
 
 ---
 
@@ -58,26 +58,29 @@ AutoAuth активируется при каждом запуске колле�
 
 ```js
 // Пререквест в коллекции
-if (!pm.environment.get('token')) {
-    pm.sendRequest({
-        url: pm.environment.get('base_url') + '/api/auth/login',
-        method: 'POST',
-        header: { 'Content-Type': 'application/json' },
-        body: {
-            mode: 'raw',
-            raw: JSON.stringify({
-                username: 'apitester2',
-                password: 'apitester123'
-            })
-        }
-    }, function (err, res) {
-        if (!err && res.code === 200) {
-            pm.environment.set('token', res.json().access_token);
-            console.log('✅ Token сохранён');
-        } else {
-            console.error('❌ Ошибка авторизации');
-        }
-    });
+if (!pm.environment.get("token")) {
+  pm.sendRequest(
+    {
+      url: pm.environment.get("base_url") + "/api/auth/login",
+      method: "POST",
+      header: { "Content-Type": "application/json" },
+      body: {
+        mode: "raw",
+        raw: JSON.stringify({
+          username: "apitester2",
+          password: "apitester123",
+        }),
+      },
+    },
+    function (err, res) {
+      if (!err && res.code === 200) {
+        pm.environment.set("token", res.json().access_token);
+        console.log("✅ Token сохранён");
+      } else {
+        console.error("❌ Ошибка авторизации");
+      }
+    },
+  );
 }
 ```
 

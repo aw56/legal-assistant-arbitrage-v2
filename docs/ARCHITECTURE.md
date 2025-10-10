@@ -34,6 +34,7 @@ backend/
 ├── seeds/                # SQL-скрипты инициализации
 ├── scripts/              # bash/python утилиты (тесты, docs, генерация Postman)
 └── docs/                 # документация (ARCHITECTURE.md, API_DOCS.md, Postman)
+```
 ````
 
 ---
@@ -141,9 +142,8 @@ curl -O http://82.165.144.150:8080/api/docs/postman
 1. Открой **Postman**
 2. Перейди в **File → Import**
 3. Выбери один из способов:
-
-   * **File → выбери `postman_collection.zip`**
-   * **Link → вставь ссылку**
+   - **File → выбери `postman_collection.zip`**
+   - **Link → вставь ссылку**
 
      ```
      http://82.165.144.150:8080/api/docs/postman
@@ -171,37 +171,37 @@ curl -O http://82.165.144.150:8080/api/docs/postman
 
 # 🏗 Сгенерировать Postman коллекцию и упаковать её
 postman: ## 🧩 Сгенерировать Postman коллекцию
-	$(MAKE) postman-export
+ $(MAKE) postman-export
 
 postman-export: ## 📦 Генерация и архивирование Postman коллекции
-	docker compose -f $(COMPOSE_FILE) exec backend sh -c "PYTHONPATH=/code python3 scripts/generate_postman.py"
-	@mkdir -p artifacts
-	zip -j artifacts/postman_collection.zip docs/postman_collection.json
-	@echo "✅ Архив сохранён: artifacts/postman_collection.zip"
+ docker compose -f $(COMPOSE_FILE) exec backend sh -c "PYTHONPATH=/code python3 scripts/generate_postman.py"
+ @mkdir -p artifacts
+ zip -j artifacts/postman_collection.zip docs/postman_collection.json
+ @echo "✅ Архив сохранён: artifacts/postman_collection.zip"
 
 # 🌍 Скачать коллекцию с сервера (через SSH/SCP или HTTP)
 postman-download: ## 📥 Скачать Postman коллекцию на локальный компьютер (WSL)
-	@if [ -z "$(HOST)" ]; then echo "❌ Укажи сервер, пример: make postman-download HOST=admin@82.165.144.150"; exit 1; fi
-	scp $(HOST):/home/admin/my_projects/legal-assistant-arbitrage-v2/artifacts/postman_collection.zip /mnt/c/Users/alexe/Downloads/
-	@echo "✅ Коллекция скопирована в C:\\Users\\alexe\\Downloads\\postman_collection.zip"
+ @if [ -z "$(HOST)" ]; then echo "❌ Укажи сервер, пример: make postman-download HOST=admin@82.165.144.150"; exit 1; fi
+ scp $(HOST):/home/admin/my_projects/legal-assistant-arbitrage-v2/artifacts/postman_collection.zip /mnt/c/Users/alexe/Downloads/
+ @echo "✅ Коллекция скопирована в C:\\Users\\alexe\\Downloads\\postman_collection.zip"
 
 postman-download-win: ## 📥 Скачать Postman коллекцию на локальный компьютер (Windows PowerShell)
-	@if [ -z "$(HOST)" ]; then echo "❌ Укажи сервер, пример: make postman-download-win HOST=admin@82.165.144.150"; exit 1; fi
-	pscp.exe $(HOST):/home/admin/my_projects/legal-assistant-arbitrage-v2/artifacts/postman_collection.zip C:\\Users\\alexe\\Downloads\\
-	@echo "✅ Коллекция скопирована в C:\\Users\\alexe\\Downloads\\postman_collection.zip"
+ @if [ -z "$(HOST)" ]; then echo "❌ Укажи сервер, пример: make postman-download-win HOST=admin@82.165.144.150"; exit 1; fi
+ pscp.exe $(HOST):/home/admin/my_projects/legal-assistant-arbitrage-v2/artifacts/postman_collection.zip C:\\Users\\alexe\\Downloads\\
+ @echo "✅ Коллекция скопирована в C:\\Users\\alexe\\Downloads\\postman_collection.zip"
 
 # 🌐 HTTP-доступ (через FastAPI) — скачивание через браузер
 postman-serve: ## 🌐 Разрешить скачивание коллекции через HTTP (порт 8080)
-	@echo "🚀 Запускаем временный HTTP-сервер для скачивания..."
-	@cd artifacts && python3 -m http.server 8080 --bind 0.0.0.0 &
-	@sleep 2
-	@SERVER_PID=$$(pgrep -f "http.server 8080" | head -n1); \
-	IP=$$(hostname -I | awk '{print $$1}'); \
-	echo "✅ Коллекция доступна по адресу:"; \
-	echo "   🌐 http://$$IP:8080/postman_collection.zip"; \
-	echo ""; \
-	read -p 'Нажмите [Enter] после скачивания для остановки сервера...'; \
-	kill $$SERVER_PID && echo "🛑 HTTP-сервер остановлен."
+ @echo "🚀 Запускаем временный HTTP-сервер для скачивания..."
+ @cd artifacts && python3 -m http.server 8080 --bind 0.0.0.0 &
+ @sleep 2
+ @SERVER_PID=$$(pgrep -f "http.server 8080" | head -n1); \
+ IP=$$(hostname -I | awk '{print $$1}'); \
+ echo "✅ Коллекция доступна по адресу:"; \
+ echo "   🌐 http://$$IP:8080/postman_collection.zip"; \
+ echo ""; \
+ read -p 'Нажмите [Enter] после скачивания для остановки сервера...'; \
+ kill $$SERVER_PID && echo "🛑 HTTP-сервер остановлен."
 ```
 
 ---
@@ -217,9 +217,9 @@ python3 scripts/generate_architecture.py
 
 Они создают:
 
-* `docs/API_DOCS.md`
-* `docs/ARCHITECTURE.md`
-* `docs/postman_collection.json`
+- `docs/API_DOCS.md`
+- `docs/ARCHITECTURE.md`
+- `docs/postman_collection.json`
 
 ---
 
@@ -227,9 +227,9 @@ python3 scripts/generate_architecture.py
 
 Интеграция Postman обеспечивает:
 
-* полное покрытие API тестами,
-* экспорт коллекций для QA и CI/CD,
-* простую проверку endpoints из внешней среды (Windows, WSL, Postman Cloud).
+- полное покрытие API тестами,
+- экспорт коллекций для QA и CI/CD,
+- простую проверку endpoints из внешней среды (Windows, WSL, Postman Cloud).
 
 > 🔹 Все шаги автоматизированы и доступны через Makefile.
 > 🔹 Проект готов для CI/CD и документирования REST API.
