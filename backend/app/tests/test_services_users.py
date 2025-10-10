@@ -1,7 +1,6 @@
-import pytest
 from sqlalchemy.orm import Session
 
-from backend.app import models, schemas
+from backend.app import schemas
 from backend.app.services import users
 
 

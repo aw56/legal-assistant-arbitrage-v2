@@ -1,15 +1,13 @@
 import httpx
 import pytest
 
-from backend.app import schemas
-
 
 @pytest.mark.asyncio
 async def test_register_and_login(client: httpx.Client):
     # === регистрация ===
     response = client.post(
         "/api/auth/register",
-        json={"username": "testuser", "password": "testpass"},
+        json={"username": "apitest", "password": "testpass"},
     )
     assert response.status_code == 200, response.text
     data = response.json()
@@ -18,7 +16,7 @@ async def test_register_and_login(client: httpx.Client):
     # === логин ===
     response = client.post(
         "/api/auth/login",
-        data={"username": "testuser", "password": "testpass"},
+        data={"username": "apitest", "password": "testpass"},
     )
     assert response.status_code == 200, response.text
     data = response.json()

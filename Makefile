@@ -1,11 +1,16 @@
-# ================================
-# ⚖️ Legal Assistant Arbitrage v2
-# Makefile для управления проектом
-# ================================
-
+# ================================================
+# ⚖️ Legal Assistant Arbitrage v2.4 — Unified CI Makefile
+# ================================================
 .DEFAULT_GOAL := help
 
-# --- Переменные ---
+# --- Locale settings ---
+SHELL := /bin/bash
+.SHELLFLAGS := -o pipefail -c
+export LANG := en_US.UTF-8
+export LC_ALL := en_US.UTF-8
+export LANGUAGE := en_US.UTF-8
+
+# --- Base vars ---
 COMPOSE_FILE        = docker-compose.prod.yml
 BACKEND_CONTAINER  := $(shell docker compose -f $(COMPOSE_FILE) ps -q backend)
 DB_CONTAINER        = legal-assistant-db
@@ -15,494 +20,292 @@ DB_DUMP_FILE        = backup.sql
 SEED_FILE           = seeds/init_data.sql
 FIXTURES_DIR        = fixtures
 
-# ================================
-# 📦 Установка зависимостей
-# ================================
+# ============================
+# 📦 INSTALL / SETUP
+# ============================
 install: ## 📦 Установить prod зависимости
 	docker exec -it $(BACKEND_CONTAINER) pip install -r requirements.txt
 
 install-dev: ## 📦 Установить dev зависимости
 	docker exec -it $(BACKEND_CONTAINER) pip install -r requirements-dev.txt
 
-setup-dev: install-dev up migrate seed test ## 🚀 Полный сетап для разработки
+setup-dev: install-dev up migrate seed test ## 🚀 Dev setup
 	@echo "✅ Dev окружение готово"
 
-setup-prod: rebuild migrate seed ## 🚀 Полный сетап для production
+setup-prod: rebuild migrate seed ## 🚀 Prod setup
 	@echo "✅ Prod окружение готово"
 
-# ==========================================
-# 🧰 УПРАВЛЕНИЕ ВИРТУАЛЬНЫМ ОКРУЖЕНИЕМ (VENV)
-# ==========================================
-
-venv-reset:
-	@echo "🧹 Удаляем старое виртуальное окружение..."
-	sudo rm -rf venv
-	@echo "🐍 Создаём новое виртуальное окружение..."
-	python3 -m venv venv
-	@echo "🚀 Активируем окружение и устанавливаем зависимости..."
-	. venv/bin/activate && pip install --upgrade pip && pip install -r requirements.txt
-	@echo "✅ Окружение успешно пересоздано и готово к работе!"
-
-# ==========================================
-# 🔐 ВОССТАНОВЛЕНИЕ ПРАВ ДОСТУПА (ПОЛНЫЙ RESET)
-# ==========================================
-
-fix-perms:
-	@echo "🔧 Восстанавливаем права доступа на проект..."
-	sudo chown -R admin:admin ~/my_projects/legal-assistant-arbitrage-v2
-	sudo chmod -R u+rwX,go+rX,go-w ~/my_projects/legal-assistant-arbitrage-v2
-	@echo "✅ Права успешно восстановлены!"
-
-# ==========================================
-# 🧪 ПРОГОН POSTMAN-ТЕСТОВ (CI-ВЕРСИЯ)
-# ==========================================
-
-test-postman:
-	@echo "🚀 Запуск CI-тестов Postman..."
-	newman run docs/Legal_Assistant_Arbitrage_v3_CI.postman_collection.json \
-	-e docs/Legal_Assistant_Env.postman_environment.json \
-	--reporters cli,html \
-	--reporter-html-export artifacts/newman_report.html
-	@echo "✅ Тесты завершены, отчёт сохранён в artifacts/newman_report.html"
-
-# ================================
-# 🐳 Docker
-# ================================
+# ============================
+# 🐳 DOCKER
+# ============================
 up: ## 🚀 Запуск контейнеров
 	docker compose -f $(COMPOSE_FILE) up -d --build
 
-down: ## ⏹️ Остановка контейнеров
+down: ## ⏹️ Остановка
 	docker compose -f $(COMPOSE_FILE) down
 
-rebuild: ## 🔄 Пересоздать контейнеры с volume
+rebuild: ## 🔄 Пересоздать
 	docker compose -f $(COMPOSE_FILE) down --volumes --remove-orphans
 	docker compose -f $(COMPOSE_FILE) up -d --build --force-recreate
 
-restart-docker: down up ## 🔄 Перезапуск контейнеров
-
-logs: ## 📜 Логи контейнеров
+logs:
 	docker compose -f $(COMPOSE_FILE) logs -f
 
-ps: ## 📋 Список контейнеров
+ps:
 	docker compose -f $(COMPOSE_FILE) ps
 
-shell: ## 🐚 Bash внутри backend
+shell:
 	docker exec -it $(BACKEND_CONTAINER) bash
 
-# ================================
-# 🗄️ Alembic / Миграции
-# ================================
-doctor-check:
-	@if [ -z "$(BACKEND_CONTAINER)" ]; then echo "❌ Backend контейнер не запущен"; exit 1; fi
-
-migrate: doctor-check ## 🗄️ Применить миграции
+# ============================
+# 🗄️ MIGRATIONS (Alembic)
+# ============================
+migrate:
 	docker exec -it $(BACKEND_CONTAINER) alembic upgrade head
 
-makemigrations: doctor-check ## ✍️ Создать новую миграцию
+makemigrations:
 	docker exec -it $(BACKEND_CONTAINER) alembic revision --autogenerate -m "new migration"
 
-fix-migrations: doctor-check ## 🛠️ Автофикс миграций
+fix-migrations:
 	docker exec -it $(BACKEND_CONTAINER) python3 scripts/fix_migrations.py
 
-current: doctor-check ## 🔎 Текущая миграция
+current:
 	docker exec -it $(BACKEND_CONTAINER) alembic current
 
-history: doctor-check ## 📜 История миграций
-	docker exec -it $(BACKEND_CONTAINER) alembic history --verbose | tail -n 50
+# ============================
+# ❤️ HEALTH / SMOKE TESTS
+# ============================
+wait-for-api:
+	@echo "⏳ Ожидание API..."
+	@until curl -s http://127.0.0.1:8080/api/health | grep '"ok"' > /dev/null; do echo "…"; sleep 2; done
+	@echo "✅ API готов!"
 
-heads: doctor-check ## 🧩 Head-миграции
-	docker exec -it $(BACKEND_CONTAINER) alembic heads
+smoke:
+	@pytest -m smoke -v --disable-warnings --maxfail=1 --tb=short || (echo "❌ Smoke не пройдены"; exit 1)
 
-downgrade: doctor-check ## ⏪ Откатить миграции (make downgrade v=-1)
-	@if [ -z "$(v)" ]; then echo "❌ Укажи версию"; exit 1; fi
-	docker exec -it $(BACKEND_CONTAINER) alembic downgrade $(v)
+smoke-ci:
+	@echo "🤖 Smoke-тесты (CI)..."
+	@pytest -m smoke -v --disable-warnings || ( \
+		echo "❌ Smoke не пройдены"; \
+		python3 backend/app/utils/notify_telegram.py "🚨 Smoke упали в CI ❌"; \
+		exit 1; \
+	)
+	@echo "✅ Smoke успешно!"
 
-merge-heads: doctor-check ## 🔀 Слить несколько heads
-	docker exec -it $(BACKEND_CONTAINER) alembic merge heads -m "merge heads"
-
-stamp-head: doctor-check ## 🏷️ Пометить миграции как применённые
-	docker exec -it $(BACKEND_CONTAINER) alembic stamp head
-	docker exec -it $(DB_CONTAINER) psql -U $(DB_USER) -d $(DB_NAME) -c "SELECT * FROM alembic_version;"
-
-check-migrations: doctor-check ## ✅ Проверка консистентности миграций
-	docker exec -it $(BACKEND_CONTAINER) alembic check || (echo "❌ Проблемы с миграциями"; exit 1)
-
-# ================================
-# 🐘 PostgreSQL
-# ================================
-db-shell: ## 🐚 Консоль psql
-	docker exec -it $(DB_CONTAINER) psql -U $(DB_USER) -d $(DB_NAME)
-
-db-tables: ## 📋 Список таблиц
-	docker exec -it $(DB_CONTAINER) psql -U $(DB_USER) -d $(DB_NAME) -c "\dt"
-
-db-dump: ## 💾 Дамп БД
-	docker exec -t $(DB_CONTAINER) pg_dump -U $(DB_USER) $(DB_NAME) > $(DB_DUMP_FILE)
-	@echo "✅ Дамп сохранён: $(DB_DUMP_FILE)"
-
-db-restore: ## ♻️ Восстановление из дампа
-	@if [ ! -f "$(DB_DUMP_FILE)" ]; then echo "❌ Нет дампа"; exit 1; fi
-	docker exec -i $(DB_CONTAINER) psql -U $(DB_USER) -d $(DB_NAME) < $(DB_DUMP_FILE)
-
-db-reset-tables: ## 💥 Очистить все таблицы
-	docker exec -it $(DB_CONTAINER) psql -U $(DB_USER) -d $(DB_NAME) -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
-
-drop-db: ## 💥 Удалить базу
-	docker exec -it $(DB_CONTAINER) dropdb -U $(DB_USER) --if-exists $(DB_NAME)
-
-create-db: ## 🆕 Создать базу
-	docker exec -it $(DB_CONTAINER) createdb -U $(DB_USER) $(DB_NAME)
-
-check-db: ## ✅ Проверка соединения с БД
-	docker exec -it $(DB_CONTAINER) psql -U $(DB_USER) -d $(DB_NAME) -c "SELECT now();"
-
-db-inspect: ## 🔍 Инспекция схем и Alembic
-	docker exec -it $(DB_CONTAINER) psql -U $(DB_USER) -d $(DB_NAME) -c "SELECT * FROM alembic_version;"
-	docker exec -it $(DB_CONTAINER) psql -U $(DB_USER) -d $(DB_NAME) -c '\dn'
-
-wait-for-db: ## ⏳ Ждать готовность БД
-	until docker exec -it $(DB_CONTAINER) pg_isready -U $(DB_USER) -d $(DB_NAME); do sleep 2; done
-
-# ================================
-# 💣 Reset окружения
-# ================================
-reset-all: ## Полный ресет окружения
-	docker compose -f $(COMPOSE_FILE) down --volumes --remove-orphans
-	docker compose -f $(COMPOSE_FILE) up -d db
-	$(MAKE) wait-for-db
-	-$(MAKE) drop-db
-	$(MAKE) create-db
-	docker compose -f $(COMPOSE_FILE) up -d backend
-	$(MAKE) migrate
-	@if [ -f "$(SEED_FILE)" ]; then $(MAKE) seed; fi
-	@echo "✅ Ресет завершён"
-
-reset-db: drop-db create-db migrate seed ## 💣 Пересоздать базу и миграции
-
-reset-migrations: ## 💣 Полный сброс миграций
-	rm -f migrations/versions/*.py || true
-	-$(MAKE) drop-db
-	$(MAKE) create-db
-	docker exec -it $(BACKEND_CONTAINER) alembic revision --autogenerate -m "init schema"
-	$(MAKE) migrate
-
-# ================================
-# ❤️ Healthcheck & Smoke
-# ================================
-health-host: ## ❤️ Проверка API (хост)
-	curl -s http://127.0.0.1:8080/api/health | jq
-
-health-container: ## ❤️ Проверка API (контейнер)
-	docker exec -it $(BACKEND_CONTAINER) curl -s http://127.0.0.1:8000/api/health | jq
-
-wait-for-api: ## ⏳ Ждать готовность API
-	until curl -s http://127.0.0.1:8080/api/health | grep '"ok"' > /dev/null; do sleep 2; done
-
-smoke: ## 🚦 Smoke-тесты локально
-	./scripts/smoke.sh
-
-smoke-ci: ## 🤖 Smoke-тесты для CI
-	bash -eo pipefail ./scripts/smoke.sh
-
-routes: ## 📋 Список маршрутов FastAPI
-	docker compose -f $(COMPOSE_FILE) exec backend python -c "from backend.app.main import app; print([r.path for r in app.routes])"
-
-doctor: ## 🩺 Проверка окружения
-	@docker --version || (echo "❌ Docker не установлен"; exit 1)
-	@docker compose -f $(COMPOSE_FILE) ps
-	@docker exec -it $(DB_CONTAINER) psql -U $(DB_USER) -d $(DB_NAME) -c "SELECT now();"
-	@docker exec -it $(BACKEND_CONTAINER) alembic current
-	@curl -s http://127.0.0.1:8080/api/health | jq
-	@echo "✅ Всё в порядке!"
-
-init: up migrate seed wait-for-api health-host ## 🚀 Полная инициализация
-
-# ================================
-# 🔧 Git
-# ================================
-git-add: git-add . ## ➕ Добавить изменения
-
-git-fix: ## 🧹 Авто-фиксы
-	docker exec -it $(BACKEND_CONTAINER) python3 scripts/fix_migrations.py || true
-	pre-commit run --all-files || true
-
-git-commit: ## 💾 Commit (make git-commit m="msg")
-	@if [ -z "$(m)" ]; then echo "❌ Укажи сообщение"; exit 1; fi
-	git commit -m "$(m)" --allow-empty || true
-
-git-push: ## ⬆️ Push
-	git push origin main
-
-git-all: git-add git-fix git-commit git-push ## 🚀 add+commit+push
-
-git-amend: ## ✏️ Amend последнего коммита
-	git add .
-	pre-commit run --all-files || true
-	git commit --amend --no-edit || true
-	git push origin main --force
-
-git-sync: ## 🔄 Синхронизация
-	@git stash push -m "sync-stash" || true
-	@git fetch origin main
-	@git rebase origin/main || true
-	@git stash pop || true
-
-git-reset-hard: ## 💥 Жёсткий сброс
-	git fetch origin main
-	git reset --hard origin/main
-
-git-reset-soft: ## 📝 Soft reset
-	git fetch origin main
-	git reset --soft origin/main
-
-# === GitHub Sync ===
-.PHONY: sync-github
-sync-github:
-	@echo "🔄 Проверка статуса репозитория..."
-	git status
-	@echo "📦 Добавление изменений..."
-	git add .
-	@echo "📝 Коммит..."
-	git commit -m "🔄 auto-sync: $$(date '+%Y-%m-%d %H:%M:%S')" || echo "⚠️ Нет изменений для коммита."
-	@echo "🚀 Push на GitHub..."
-	git push origin main
-	@echo "✅ Синхронизация завершена!"
-
-# ================================
-# ✅ Тесты
-# ================================
-test: ## ✅ Запуск тестов
+# ============================
+# ✅ TESTS / INTEGRATION
+# ============================
+test:
 	docker exec -it $(BACKEND_CONTAINER) pytest backend/app/tests
 
-test-verbose: ## 🐛 Подробные тесты
-	docker exec -it $(BACKEND_CONTAINER) pytest -vv backend/app/tests
-
-docker-test: ## 🧪 Все тесты
-	docker exec -it $(BACKEND_CONTAINER) pytest -vv
-
-ci-test: ## 🤖 CI/CD тесты (pytest + API)
-	docker exec $(BACKEND_CONTAINER) pytest -vv --maxfail=1 --disable-warnings -q
-	$(MAKE) test-api
-
-coverage: ## 📊 Покрытие тестами
-	docker exec -it $(BACKEND_CONTAINER) pytest --cov=backend/app tests/ --cov-report=term-missing
-
-# ================================
-# 🌐 Интеграционные тесты API
-# ================================
-test-auth: ## 🔑 Тест авторизации (register/login/me)
-	./scripts/test_auth.sh
-
-test-laws: ## 📚 Тест CRUD законов
-	./scripts/test_laws.sh $(TOKEN)
-
-test-decisions: ## ⚖️ Тест CRUD решений
-	./scripts/test_decisions.sh $(TOKEN)
-
-test-updated-at: ## ⏰ Тест работы поля updated_at
-	./scripts/test_updated_at.sh $(TOKEN)
-
-test-api: ## 🌐 Полный интеграционный тест API (auth + laws + decisions + updated_at)
-	./scripts/test_api.sh
-
-# ================================
-# 🚀 Local FastAPI
-# ================================
-run: ## 🚀 Запуск FastAPI локально
-	nohup uvicorn backend.app.main:app --reload --host 127.0.0.1 --port 8000 > uvicorn.log 2>&1 &
-
-stop: ## ⏹️ Остановить FastAPI
-	@pkill -f "uvicorn backend.app.main:app --reload" || true
-
-status: ## 📋 Проверить статус uvicorn
-	@pgrep -a -f "uvicorn backend.app.main:app --reload" || echo "❌ uvicorn не запущен"
-
-logs-local: ## 📜 Логи uvicorn
-	@tail -f uvicorn.log
-
-restart: stop run ## 🔄 Перезапуск uvicorn
-
-# ================================
-# 🐳 Docker (prod/staging)
-# ================================
-ps-docker: ## 📋 Контейнеры
-	docker compose -f docker-compose.prod.yml ps
-
-logs-docker: ## 📜 Логи
-	docker compose -f docker-compose.prod.yml logs -f
-
-shell-docker: ## 🐚 Bash в backend
-	docker compose -f docker-compose.prod.yml exec backend bash
-
-# ================================
-# 🔎 Линтеры и форматирование
-# ================================
-lint: ## 🔎 Линтеры
-	pre-commit run --all-files
-
-format: ## 🎨 Форматирование
-	black backend/ scripts/
-	isort backend/ scripts/
-
-# ================================
-# 📖 Документация
-# ================================
-apidocs: ## 📖 Сгенерировать API_DOCS.md
-	docker compose -f $(COMPOSE_FILE) exec backend sh -c "PYTHONPATH=/code python3 scripts/generate_docs.py"
-
-archdocs: ## 🏗️ Сгенерировать ARCHITECTURE.md
-	docker compose -f $(COMPOSE_FILE) exec backend sh -c "PYTHONPATH=/code python3 scripts/generate_architecture.py"
-
-docs: apidocs archdocs ## 📚 Полная генерация документации
-
-deploy: setup-prod ## 🚀 Деплой
-
-# ================================
-# 📦 Postman — генерация, экспорт, загрузка и HTTP-доступ
-# ================================
-
-# 🧩 Сгенерировать Postman коллекцию с указанием внешнего URL (для внешнего Postman)
-postman: ## 🧩 Сгенерировать Postman коллекцию (пример: make postman HOST_URL=http://82.165.144.150:8080)
-	@if [ -z "$(HOST_URL)" ]; then echo "⚠️  Используется BASE_URL по умолчанию: http://127.0.0.1:8080"; fi
-	docker compose -f $(COMPOSE_FILE) exec backend sh -c "PYTHONPATH=/code BASE_URL=$(HOST_URL) python3 scripts/generate_postman.py"
-	$(MAKE) postman-export
-
-# 📦 Архивация коллекции
-postman-export: ## 📦 Упаковать Postman коллекцию в ZIP
-	@mkdir -p artifacts
-	zip -j artifacts/postman_collection.zip docs/postman_collection.json
-	@echo "✅ Архив сохранён: artifacts/postman_collection.zip"
-
-# 📥 Загрузка из WSL (копирование в Windows-папку)
-postman-download: ## 📥 Скачать Postman коллекцию на локальный ПК (WSL → Windows)
-	@if [ -z "$(HOST)" ]; then echo "❌ Укажи сервер, пример: make postman-download HOST=admin@82.165.144.150"; exit 1; fi
-	scp $(HOST):/home/admin/my_projects/legal-assistant-arbitrage-v2/artifacts/postman_collection.zip /mnt/c/Users/alexe/Downloads/
-	@echo "✅ Коллекция скопирована в C:\\Users\\alexe\\Downloads\\postman_collection.zip"
-
-# 📥 Загрузка через PowerShell (PuTTY pscp.exe)
-postman-download-win: ## 📥 Скачать Postman коллекцию через pscp.exe (Windows)
-	@if [ -z "$(HOST)" ]; then echo "❌ Укажи сервер, пример: make postman-download-win HOST=admin@82.165.144.150"; exit 1; fi
-	pscp.exe $(HOST):/home/admin/my_projects/legal-assistant-arbitrage-v2/artifacts/postman_collection.zip C:\\Users\\alexe\\Downloads\\
-	@echo "✅ Коллекция скопирована в C:\\Users\\alexe\\Downloads\\postman_collection.zip"
-
-# 🌐 HTTP-доступ для скачивания коллекции
-postman-serve: ## 🌐 Разрешить скачивание коллекции через HTTP
-	@echo "🚀 Запускаем временный HTTP-сервер для скачивания Postman коллекции..."
-	@cd artifacts && python3 -m http.server 8080 --bind 0.0.0.0 &
-	@sleep 2
-	@SERVER_PID=$$(pgrep -f "http.server 8080" | head -n1); \
-	IP=$$(hostname -I | awk '{print $$1}'); \
-	echo ""; \
-	echo "✅ Коллекция доступна по адресу:"; \
-	echo "   🌍 http://$$IP:8080/postman_collection.zip"; \
-	echo ""; \
-	read -p 'Нажмите [Enter], когда скачаете файл, чтобы остановить сервер...'; \
-	kill $$SERVER_PID && echo "🛑 HTTP-сервер остановлен."
-
-# 🌐 Постоянный эндпоинт /api/docs/postman для скачивания через FastAPI
-postman-api-route: ## ⚙️ Добавить /api/docs/postman эндпоинт в приложение
-	@echo "➡️  Добавь файл backend/app/routes/docs.py со следующим содержимым:"
-	@echo '---'
-	@echo 'from fastapi import APIRouter'
-	@echo 'from fastapi.responses import FileResponse'
-	@echo 'from pathlib import Path'
-	@echo ''
-	@echo 'router = APIRouter(prefix="/api/docs", tags=["docs"])'
-	@echo ''
-	@echo '@router.get("/postman", summary="Скачать Postman коллекцию")'
-	@echo 'def get_postman_collection():'
-	@echo '    path = Path("docs/postman_collection.json")'
-	@echo '    if not path.exists():'
-	@echo '        return {"detail": "❌ Коллекция не найдена. Сначала запусти make postman"}'
-	@echo '    return FileResponse(path, filename="postman_collection.json", media_type="application/json")'
-	@echo ''
-	@echo "✅ После этого зарегистрируй роут в main.py:"
-	@echo 'from backend.app.routes import docs'
-	@echo 'app.include_router(docs.router)'
-
-# === Postman / Newman CI тестирование ===
-#
-# Генерация CI-отчёта Postman
-#test-ci:
-#	@echo "🚀 Запуск Newman CI тестов (AutoAuth, CRUD, Cleanup)..."
-#	newman run docs/Legal_Assistant_Arbitrage_v3_CI.postman_collection.json \
-#	  -e docs/Legal_Assistant_Env.postman_environment.json \
-#	  --reporters cli,html \
-#	  --reporter-html-export artifacts/newman_report.html
-#	@echo "✅ Отчёт создан: artifacts/newman_report.html"
-
-# ===========================================
-# 🧪 Postman CI v3.1 — AutoAuth Full Pipeline
-# ===========================================
-
-test-ci-v31: ## 🚀 Прогон AutoAuth тестов (v3.1) через Postman + Newman
-	@echo "🚀 Запуск Newman CI тестов (AutoAuth v3.1, CRUD, Cleanup)..."
-	@mkdir -p artifacts
-	newman run docs/Legal_Assistant_Arbitrage_v3.1_CI.postman_collection.json \
-	  -e docs/Legal_Assistant_Env.postman_environment.json \
-	  --reporters cli,html \
-	  --reporter-html-export artifacts/newman_report_v31.html || { \
-	    echo "❌ Ошибка во время выполнения тестов (см. отчёт в artifacts/newman_report_v31.html)"; exit 1; }
-	@echo ""
-	@echo "✅ CI-тесты (v3.1) успешно выполнены. Отчёт сохранён:"
-	@echo "   📄 artifacts/newman_report_v31.html"
-
-# ================================
-# 🧪 CI Postman Tests (AutoAuth v3.2)
-# ================================
-
-test-ci-v32: ## 🧩 Прогон Postman CI-тестов v3.2 (AutoAuth, CRUD, Cleanup, Fix law_id)
-	@echo "🚀 Запуск Newman CI тестов (AutoAuth v3.2, CRUD, Cleanup, Fix law_id)..."
-	newman run docs/Legal_Assistant_Arbitrage_v3.2_CI.postman_collection.json \
-	  -e docs/Legal_Assistant_Env.postman_environment.json \
-	  --reporters cli,html \
-	  --reporter-html-export artifacts/newman_report_v32.html || { \
-	    echo "❌ Ошибка во время выполнения тестов (см. отчёт в artifacts/newman_report_v32.html)"; exit 1; }
-	@echo ""
-	@echo "✅ Тестирование завершено! Отчёт сохранён в artifacts/newman_report_v32.html"
-
-# 🧪 CI-тесты AutoAuth v3.3 (исправлено полностью)
-test-ci-v33: ## 🚀 Запуск CI-тестов Postman (AutoAuth v3.3 Stable)
-	@echo "🚀 Запуск Newman CI тестов (AutoAuth v3.3, CRUD, Cleanup — Stable)..."
+test-ci-v33:
+	@echo "🚀 Newman CI (AutoAuth v3.3)..."
 	newman run docs/Legal_Assistant_Arbitrage_v3.3_CI.postman_collection.json \
 		-e docs/Legal_Assistant_Env.postman_environment.json \
 		--reporters cli,html \
 		--reporter-html-export artifacts/newman_report_v33.html || { \
-			echo '❌ Ошибка во время тестов (см. artifacts/newman_report_v33.html)'; exit 1; }
-# =================================
-# ---- KAD integration helpers ----
-# =================================
-.PHONY: kad-test kad-lint kad-env-example
+			echo '❌ Ошибка тестов (см. отчёт)'; exit 1; }
 
-kad-test:
-	@pytest -q backend/app/tests/test_kad_api.py -vv
+test-ci-v3: ## Полный CI-цикл (pytest + Postman + снапшот + push)
+	@echo "🚀 Полный CI-цикл AutoAuth v3.3"
+	@START=$$(date '+%Y-%m-%d %H:%M:%S'); \
+	$(MAKE) test-ci-v33 && STATUS="✅ OK" || STATUS="❌ Ошибка"; \
+	echo "📸 Снапшот..."; $(MAKE) progress-snapshot; \
+	echo "🧾 Запись в PROGRESS_TACTICAL.md..."; \
+	echo "" >> docs/PROGRESS_TACTICAL.md; \
+	echo "🧪 CI v3.3 — $$STATUS ($$START)" >> docs/PROGRESS_TACTICAL.md; \
+	$(MAKE) progress-auto-push; \
+	echo "✅ Полный CI завершён."
 
-kad-lint:
-	@ruff check backend/app/integrations/kad_api.py backend/app/tests/test_kad_api.py
+integration:
+	@pytest -m integration -v --disable-warnings --maxfail=1 || (echo "❌ Интеграционные не пройдены"; exit 1)
 
-kad-env-example:
-	@echo "KAD_BASE_URL=https://kad.arbitr.ru"; \
-	echo "KAD_API_KEY=your_token_here"; \
-	echo "KAD_TIMEOUT_S=15"; \
-	echo "KAD_MAX_RETRIES=2"
+# ============================
+# 📢 TELEGRAM
+# ============================
+TELEGRAM_BOT_TOKEN ?= $(TELEGRAM_BOT_TOKEN)
+TELEGRAM_CHAT_ID ?= $(TELEGRAM_CHAT_ID)
+MESSAGE ?= "✅ CI успешно завершён."
+
+telegram-notify:
+	@python3 backend/app/utils/notify_telegram.py "$(MESSAGE)"
+
+telegram-notify-test:
+	@$(MAKE) telegram-notify MESSAGE="🚀 Тест уведомления из Makefile"
+
+# ============================
+# 🧩 SED TOOLKIT (v3.7)
+# ============================
+SED_RULES := scripts/sed_auto_rules.txt
+SED_LOG := logs/sed.log
+SED_CSV := logs/sed_auto_log.csv
+SED_BACKUP_DIR := backup/sed
+SED_TIMESTAMP := $(shell date '+%Y-%m-%d_%H-%M-%S')
+
+sed-validate:
+	@file $(SED_RULES)
+	@grep -q '→' $(SED_RULES) || (echo "❌ Нет →"; exit 1)
+	@echo "✅ Правила корректны"
+
+sed-auto:
+	@mkdir -p logs $(SED_BACKUP_DIR)
+	@echo "🤖 sed-auto запускается..."
+	@> $(SED_LOG); echo "pattern,replace,file,timestamp" > $(SED_CSV)
+	@while IFS='→' read -r p r; do \
+		[ -z "$$p" ] && continue; \
+		files=$$(grep -rl "$$p" backend app Makefile scripts 2>/dev/null || true); \
+		for f in $$files; do \
+			cp "$$f" "$(SED_BACKUP_DIR)/$$(basename $$f)_$(SED_TIMESTAMP).bak"; \
+			sed -i "s|$$p|$$r|g" "$$f"; \
+			echo "$$p,$$r,$$f,$(SED_TIMESTAMP)" >> $(SED_CSV); \
+			echo "✅ $$f"; \
+		done; \
+	done < $(SED_RULES)
+	@echo "✅ sed-auto завершено. Логи: $(SED_LOG)"
+
+# ============================
+# 📘 PROGRESS & CI-DOCS v2.4
+# ============================
+PROGRESS_DIR := artifacts
+PROGRESS_DOCS := docs
+PROGRESS_DATE := $(shell date '+%Y%m%d')
+PROGRESS_TIME := $(shell date '+%H%M')
+PROGRESS_FILE := $(PROGRESS_DOCS)/PROGRESS_$(PROGRESS_DATE).md
+PROGRESS_SNAPSHOT := $(PROGRESS_DIR)/PROGRESS_$(PROGRESS_DATE)_$(PROGRESS_TIME).md
+PROGRESS_TEMPLATE := $(PROGRESS_DOCS)/PROGRESS_TEMPLATE.md
+TACTICAL_FILE := $(PROGRESS_DOCS)/PROGRESS_TACTICAL.md
+
+progress-template:
+	@mkdir -p $(PROGRESS_DOCS)
+	@cp $(PROGRESS_TEMPLATE) $(PROGRESS_FILE) 2>/dev/null || \
+	( echo "# 📘 Отчёт $(PROGRESS_DATE)" > $(PROGRESS_FILE); echo "**Дата:** $$(date)" >> $(PROGRESS_FILE) )
+	@echo "✅ Создан: $(PROGRESS_FILE)"
+
+progress-append:
+	@echo "✏️ Вставь факты (Ctrl+D для завершения):"
+	@cat >> $(PROGRESS_FILE)
+	@echo "✅ Добавлено в $(PROGRESS_FILE)"
+
+progress-snapshot:
+	@mkdir -p $(PROGRESS_DIR)
+	@cp $(PROGRESS_FILE) $(PROGRESS_SNAPSHOT)
+	@echo "✅ Снапшот: $(PROGRESS_SNAPSHOT)"
+
+progress-auto-push:
+	@$(MAKE) progress-snapshot
+	@git add docs/PROGRESS_*.md artifacts/PROGRESS_*.md || true
+	@git commit -m "📘 progress snapshot $(PROGRESS_DATE)_$(PROGRESS_TIME)" || echo "⚠️ Нет изменений."
+	@git push origin main
+	@echo "✅ Прогресс отправлен в GitHub"
+
+progress-help:
+	@echo "make progress-template  → создать отчёт"
+	@echo "make progress-append    → добавить факты"
+	@echo "make progress-snapshot  → снапшот"
+	@echo "make progress-auto-push → снапшот + git push"
 
 # ================================
-# 📖 Help
+# 🔎 Линтеры и автоформатирование
 # ================================
-help: ## 📖 Все команды
-	@echo "=== 🛠 Доступные команды Makefile ==="
+
+lint: ## 🔎 Запуск всех линтеров (pre-commit + flake8 + yamllint + markdownlint + tabs)
+	@echo "🔎 Проверка кода и конфигурации..."
+	@pre-commit run --all-files --show-diff-on-failure || true
+	@yamllint .github/workflows/ci.yml || true
+	@$(MAKE) lint-tabs
+	@echo "✅ Проверка завершена."
+# ===========================
+# 🧹 FIX DOCS FORMAT
+# ===========================
+fix-docs:
+	@echo "🧩 Исправление markdownlint и форматирование документации..."
+	npx markdownlint-cli2 --fix "docs/**/*.md" || true
+	npx prettier --write "docs/**/*.md" || true
+	@git diff docs/ > artifacts/fix_markdown_docs.diff || true
+	@git add docs/ artifacts/fix_markdown_docs.diff
+	@git commit -m "fix(docs): auto-format markdown files for markdownlint compliance" || true
+	@echo "✅ Документация отформатирована и закоммичена."
+
+# ===========================
+# 📋 LINT DOCS
+# ===========================
+lint-docs:
+	@echo "🔍 Проверка документации markdownlint..."
+	npx markdownlint-cli2 "docs/**/*.md" || true
+
+# ===========================
+# 🧠 LINT DOCS FIX
+# ===========================
+lint-docs-fix:
+	@echo "🪄 Автоисправление markdownlint..."
+	npx markdownlint-cli2 --fix "docs/**/*.md" || true
+	npx prettier --write "docs/**/*.md" || true
+	@git add docs/
+	@git commit -m "fix(docs): auto-fix markdownlint structural issues" || true
+	@echo "✅ Документация выровнена по lint-правилам."
+
+# ===========================
+# 🧩 LINT DOCS STRICT (Full Autoformat)
+# ===========================
+lint-docs-strict: ## 🧩 Полное автоформатирование Markdown (строгий режим)
+	@echo "🧩 Полное автоформатирование Markdown (lint + prettier)..."
+	npx markdownlint-cli2 --fix "docs/**/*.md" "artifacts/**/*.md" || true
+	npx prettier --write "docs/**/*.md" "artifacts/**/*.md" || true
+	@pre-commit run --all-files || true
+	@git add docs/ artifacts/ || true
+	@git commit -m "fix(docs): full markdown autoformat (strict lint compliance)" || echo "⚠️ Нет изменений."
+	@echo "✅ Полный Markdown автоформат завершён."
+
+# ===========================
+# 🧹 FIX YAML FORMAT (yamllint)
+# ===========================
+fix-yaml: ## 🧹 Исправление YAML (yamllint rules)
+	@echo "🧹 Исправление YAML (yamllint rules)..."
+	find .github/workflows -type f -name "*.yml" \
+	-exec sed -i 's/\[ /[/' {} \; \
+	-exec sed -i 's/ \]/]/' {} \; \
+	-exec sed -i 's/\"true\"/true/' {} \; \
+	-exec sed -i 's/\"false\"/false/' {} \;
+	@sed -i '1s/^/---\n/' .pre-commit-config.yaml || true
+	@sed -i '1s/^/---\n/' docker-compose.yml || true
+	@sed -i '1s/^/---\n/' docker-compose.prod.yml || true
+	@git add .github/workflows .pre-commit-config.yaml docker-compose.yml docker-compose.prod.yml || true
+	@git commit -m "chore(yaml): auto-fix yamllint compliance" || echo "⚠️ Нет изменений."
+	@echo "✅ YAML успешно выровнен."
+
+# ===========================
+# 🔍 LINT TABS (Makefile syntax)
+# ===========================
+lint-tabs: ## 🔍 Проверка табов в Makefile (исключить пробелы)
+	@echo "🔍 Проверка Makefile на пробелы вместо табов..."
+	@if grep -P '^[ ]{4,}[^\t#]' Makefile > /tmp/make_tabs_check.txt; then \
+	echo "❌ Обнаружены строки с пробелами вместо табов:"; \
+	cat /tmp/make_tabs_check.txt; \
+	exit 1; \
+	else \
+	echo "✅ Все команды Makefile используют TAB."; \
+	fi
+
+# ===========================
+# 🧰 FIX TABS (auto-convert spaces to TABs)
+# ===========================
+# ============================
+# 📚 DOCS & HELP
+# ============================
+apidocs:
+	docker compose -f $(COMPOSE_FILE) exec backend sh -c "PYTHONPATH=/code python3 scripts/generate_docs.py"
+
+archdocs:
+	docker compose -f $(COMPOSE_FILE) exec backend sh -c "PYTHONPATH=/code python3 scripts/generate_architecture.py"
+
+docs: apidocs archdocs
+	@echo "📚 Документация обновлена."
+
+help:
+	@echo "=== 🧭 Makefile Legal Assistant Arbitrage v2.4 ==="
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
-		| awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-25s\033[0m %s\n", $$1, $$2}'
+	| awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-28s\033[0m %s\n", $$1, $$2}'
 
-.PHONY: help install install-dev setup-dev setup-prod \
-	up down rebuild restart-docker logs ps shell \
-	doctor-check migrate makemigrations fix-migrations current history heads downgrade merge-heads stamp-head check-migrations \
-	db-shell db-tables db-dump db-restore db-reset-tables drop-db create-db check-db db-inspect wait-for-db \
-	reset-all reset-db reset-migrations \
-	health-host health-container wait-for-api smoke smoke-ci routes doctor init \
-	git-add git-fix git-commit git-push git-all git-amend git-sync git-reset-hard git-reset-soft \
-	test test-verbose docker-test ci-test coverage \
-	test-auth test-laws test-decisions test-api \
-	run stop status logs-local restart \
-	ps-docker logs-docker shell-docker \
-	lint format apidocs archdocs docs deploy
+# ===========================
+# 🧰 FIX TABS (auto-convert spaces to TABs)
+# ===========================

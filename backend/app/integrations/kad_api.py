@@ -21,13 +21,14 @@ Notes:
 """
 from __future__ import annotations
 
-from dataclasses import dataclass
-from typing import Any, Dict, List, Optional
 import asyncio
 import os
+from dataclasses import dataclass
+from typing import Any, Dict, List, Optional
 
 import httpx
 from pydantic import BaseModel, Field, ValidationError
+
 
 # -----------------------------
 # Pydantic response models
@@ -132,7 +133,9 @@ class KadAPI:
             raise KadValidationError(str(e))
 
     async def download_document(self, doc_id: str) -> bytes:
-        resp = await self._request("GET", f"/api/documents/{doc_id}/download", expect_json=False)
+        resp = await self._request(
+            "GET", f"/api/documents/{doc_id}/download", expect_json=False
+        )
         return resp.content
 
     async def aclose(self) -> None:
@@ -146,7 +149,9 @@ class KadAPI:
         except Exception as e:  # pragma: no cover
             raise KadError(f"Invalid JSON from KAD at {path}: {e}")
 
-    async def _request(self, method: str, path: str, *, expect_json: bool = True, **kwargs) -> httpx.Response:
+    async def _request(
+        self, method: str, path: str, *, expect_json: bool = True, **kwargs
+    ) -> httpx.Response:
         last_exc: Optional[Exception] = None
         url = path if path.startswith("http") else f"{self._client.base_url}{path}"
         for attempt in range(self.config.max_retries + 1):
@@ -166,7 +171,9 @@ class KadAPI:
                 raise KadError(f"Network error after retries: {e}") from e
             except httpx.HTTPStatusError as e:  # pragma: no cover
                 # Bubble up structured errors
-                raise KadError(f"KAD HTTP error {e.response.status_code}: {e.response.text}") from e
+                raise KadError(
+                    f"KAD HTTP error {e.response.status_code}: {e.response.text}"
+                ) from e
         # pragma: no cover
         if last_exc:
             raise KadError(f"Request failed: {last_exc}")

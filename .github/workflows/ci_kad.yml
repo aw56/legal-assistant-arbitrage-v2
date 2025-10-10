@@ -1,10 +1,11 @@
+---
 name: 🧪 KAD Integration & API Health CI
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
-    branches: [ main ]
+    branches: [main]
   workflow_dispatch:
 
 jobs:

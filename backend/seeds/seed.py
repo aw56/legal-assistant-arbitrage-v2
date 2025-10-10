@@ -1,8 +1,7 @@
 import asyncio
-from datetime import datetime
 
 from backend.app.core.security import get_password_hash
-from backend.app.database import Base, async_session_maker, engine
+from backend.app.database import async_session_maker
 from backend.app.models.decision import Decision
 from backend.app.models.law import Law
 from backend.app.models.user import User

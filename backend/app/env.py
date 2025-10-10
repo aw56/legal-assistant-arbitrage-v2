@@ -10,7 +10,7 @@ load_dotenv(dotenv_path)
 
 POSTGRES_USER = quote_plus(os.getenv("POSTGRES_USER", "admin"))
 POSTGRES_PASSWORD = quote_plus(os.getenv("POSTGRES_PASSWORD", "admin"))
-POSTGRES_HOST = os.getenv("POSTGRES_HOST", "localhost")
+POSTGRES_HOST = os.getenv("POSTGRES_HOST", "api.legal.local")
 POSTGRES_PORT = os.getenv("POSTGRES_PORT", "5432")
 POSTGRES_DB = os.getenv("POSTGRES_DB", "legal_assistant_db")
 

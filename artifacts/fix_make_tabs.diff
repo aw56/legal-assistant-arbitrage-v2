@@ -1,0 +1,35 @@
+diff --git a/Makefile b/Makefile
+--- a/Makefile
++++ b/Makefile
+@@ -228,10 +228,12 @@
+ lint: ## 🔎 Запуск всех линтеров (pre-commit + flake8 + yamllint + markdownlint)
+-        @echo "🔎 Проверка кода и конфигурации..."
+-        @pre-commit run --all-files --show-diff-on-failure || true
+-        @yamllint .github/workflows/ci.yml || true
+-        @echo "✅ Проверка завершена."
++	@echo "🔎 Проверка кода и конфигурации..."
++	@pre-commit run --all-files --show-diff-on-failure || true
++	@yamllint .github/workflows/ci.yml || true
++	@$(MAKE) lint-tabs
++	@echo "✅ Проверка завершена."
+
+ # ===========================
+ # 🔍 LINT TABS (Makefile syntax)
+ # ===========================
+ lint-tabs: ## 🔍 Проверка табов в Makefile (исключить пробелы)
+ 	@echo "🔍 Проверка Makefile на пробелы вместо табов..."
+ 	@if grep -P '^[ ]{4,}[^\t#]' Makefile > /tmp/make_tabs_check.txt; then \
+ 		echo "❌ Обнаружены строки с пробелами вместо табов:"; \
+ 		cat /tmp/make_tabs_check.txt; \
+ 		exit 1; \
+ 	else \
+ 		echo "✅ Все команды Makefile используют TAB."; \
+ 	fi
+
++# ===========================
++# 🧰 FIX TABS (auto-convert spaces to TABs)
++# ===========================
++fix-tabs: ## 🧰 Автоматическая замена пробелов на TAB в Makefile
++	@echo "🧰 Замена пробелов на TAB в Makefile..."
++	@sed -i 's/^\([[:space:]]\{4,\}\)\([^[:space:]]\)/\t\2/' Makefile
++	@echo "✅ Makefile очищен и все отступы заменены на TAB."

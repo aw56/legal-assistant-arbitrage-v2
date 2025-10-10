@@ -1,8 +1,9 @@
+---
 name: Docs Auto Update
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [main, develop]
 
 jobs:
   update-docs:

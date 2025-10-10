@@ -2,20 +2,22 @@
 Uses respx to mock httpx.AsyncClient.
 Run: `pytest -q tests/test_kad_api.py`
 """
+
 import os
 import pathlib
+
+import httpx
 import pytest
 import respx
-import httpx
 
 from backend.app.integrations.kad_api import (
-    KadAPI,
-    KadConfig,
-    KadSync,
-    CaseShort,
     CaseDetails,
+    CaseShort,
+    KadAPI,
     KadAuthError,
+    KadConfig,
     KadNotFound,
+    KadSync,
 )
 
 BASE = "https://kad.example.local"
@@ -35,12 +37,19 @@ async def client():
 @pytest.mark.asyncio
 async def test_search_cases_ok(client):
     route = respx.get(f"{BASE}/api/cases/search").mock(
-        return_value=httpx.Response(200, json={
-            "items": [
-                {"id": "123", "caseNumber": "A40-1/2024", "courtName": "АС г. Москвы"},
-                {"id": "124", "number": "A40-2/2024", "court": "АС г. Москвы"},
-            ]
-        })
+        return_value=httpx.Response(
+            200,
+            json={
+                "items": [
+                    {
+                        "id": "123",
+                        "caseNumber": "A40-1/2024",
+                        "courtName": "АС г. Москвы",
+                    },
+                    {"id": "124", "number": "A40-2/2024", "court": "АС г. Москвы"},
+                ]
+            },
+        )
     )
     items = await client.search_cases("A40")
     assert len(items) == 2
@@ -53,15 +62,18 @@ async def test_search_cases_ok(client):
 @pytest.mark.asyncio
 async def test_get_case_ok(client):
     respx.get(f"{BASE}/api/cases/123").mock(
-        return_value=httpx.Response(200, json={
-            "caseId": "123",
-            "caseNumber": "A40-1/2024",
-            "courtName": "АС г. Москвы",
-            "parties": ["ИСТЕЦ", "ОТВЕТЧИК"],
-            "judgeName": "Судья Иванов",
-            "status": "В производстве",
-            "hearings": [{"date": "2024-03-01", "result": "назначено"}],
-        })
+        return_value=httpx.Response(
+            200,
+            json={
+                "caseId": "123",
+                "caseNumber": "A40-1/2024",
+                "courtName": "АС г. Москвы",
+                "parties": ["ИСТЕЦ", "ОТВЕТЧИК"],
+                "judgeName": "Судья Иванов",
+                "status": "В производстве",
+                "hearings": [{"date": "2024-03-01", "result": "назначено"}],
+            },
+        )
     )
     case = await client.get_case("123")
     assert isinstance(case, CaseDetails)
@@ -106,7 +118,9 @@ def test_sync_facade(tmp_path: pathlib.Path, monkeypatch):
 
     with _respx.mock as router:
         router.get(f"{base}/api/cases/search").mock(
-            return_value=httpx.Response(200, json={"items": [{"id": "1", "number": "A40-1/24"}]})
+            return_value=httpx.Response(
+                200, json={"items": [{"id": "1", "number": "A40-1/24"}]}
+            )
         )
         items = sync.search_cases("A40")
         assert items[0].number == "A40-1/24"

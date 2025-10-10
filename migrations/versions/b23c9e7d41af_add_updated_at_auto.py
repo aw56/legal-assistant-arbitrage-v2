@@ -6,8 +6,6 @@ Create Date: 2025-10-03 15:45:00.000000
 
 """
 
-from datetime import datetime
-
 import sqlalchemy as sa
 from alembic import op
 

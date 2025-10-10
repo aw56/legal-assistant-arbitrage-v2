@@ -1,3 +1,4 @@
+---
 name: Docker Build & Push
 
 on:
@@ -40,7 +41,7 @@ jobs:
         shell: bash
         run: |
           echo "sha_tag=${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
-          if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
+          if [["${GITHUB_REF}" == refs/tags/*]]; then
             version_tag="${GITHUB_REF#refs/tags/}"
             echo "version_tag=${version_tag}" >> "$GITHUB_OUTPUT"
           fi

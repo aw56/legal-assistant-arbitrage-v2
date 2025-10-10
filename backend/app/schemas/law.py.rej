@@ -16,5 +16,3 @@
 -    text: str | None = None
 +    text: str | None = None
 +    description: str | None = None
-
-
