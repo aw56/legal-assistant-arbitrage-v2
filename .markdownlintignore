@@ -1,0 +1,24 @@
+# =====================================
+# 🚫 MarkdownLint Ignore List
+# Legal Assistant Arbitrage v2.4
+# =====================================
+
+# 🧱 Временные и автогенерируемые артефакты
+artifacts/
+backup/
+logs/
+
+# 🧪 Старые версии документации и отчёты
+docs/README.*
+docs/TROUBLESHOOTING.*
+docs/PROGRESS_*
+docs/ROADMAP_v2.*
+docs/DEPLOY_LOG_TEMPLATE.md
+
+# 📦 Служебные или экспортируемые данные
+*.old.md
+*.template.md
+
+# 🧩 Всё, что не относится к ручной документации
+Legal/
+LegalAssistantArbitrage.postman_collection.json.old

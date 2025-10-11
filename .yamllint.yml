@@ -1,0 +1,56 @@
+---
+# ================================================
+# ⚖️ yamllint configuration — Legal Assistant Arbitrage v2.4
+# ================================================
+
+extends: default
+
+ignore: |
+  node_modules/**
+  venv/**
+  artifacts/**
+  logs/**
+  .cache/**
+  tmp/**
+  __pycache__/**
+
+rules:
+  # --- Основные настройки форматирования ---
+  line-length:
+    max: 120
+    allow-non-breakable-words: true
+    ignore: |
+      .github/workflows/**
+      docker-compose.yml
+      docker-compose.prod.yml
+
+  # --- Отключаем "ложное" срабатывание truthy для GitHub Actions ---
+  truthy: disable
+
+  # --- Комментарии: допускаем 1 пробел перед `#` ---
+  comments:
+    min-spaces-from-content: 1
+
+  # --- Проверка отступов (по 2 пробела) ---
+  indentation:
+    spaces: 2
+    indent-sequences: consistent
+
+  # --- Документ должен начинаться с `---` ---
+  document-start: enable
+
+  # --- Пробелы и отступы ---
+  trailing-spaces: enable
+  new-line-at-end-of-file: enable
+  hyphens: enable
+
+  # --- Отключаем жёсткие ограничения на quoted strings ---
+  quoted-strings:
+    quote-type: double
+    required: false
+
+  # --- Упрощаем правила для workflow и docker-compose ---
+  key-duplicates: enable
+  braces: enable
+  brackets: enable
+  colons: enable

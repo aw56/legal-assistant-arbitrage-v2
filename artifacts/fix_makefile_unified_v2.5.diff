@@ -1,0 +1,35 @@
+diff --git a/Makefile b/Makefile
+index 44364a0..d8e4f22 100644
+--- a/Makefile
++++ b/Makefile
+@@ -305,6 +305,20 @@ lint-tabs: ## 🔍 Проверка табов в Makefile (исключить про
+         echo "✅ Все команды Makefile используют TAB."; \
+         fi
+
++# ================================
++# 🔍 PRE-COMMIT (автопроверки кода)
++# ================================
++pre-commit: ## 🔍 Запуск pre-commit (все хуки)
++	@echo "🚦 Запуск pre-commit хуков..."
++	@if ! command -v pre-commit >/dev/null 2>&1; then \
++		echo "⚠️  pre-commit не найден. Устанавливаю..."; \
++		pip install pre-commit >/dev/null; \
++	fi
++	@pre-commit run --all-files --show-diff-on-failure || true
++	@echo "✅ pre-commit проверки завершены."
++
++# (make pre-commit можно безопасно запускать и локально, и в CI)
++
+ # ===========================
+ # 🧰 FIX TABS (auto-convert spaces to TABs)
+ # ===========================
+@@ -336,6 +350,12 @@ fix-tests-auth:
+         @sed -i 's/pytest.fail(/pytest.skip(/' backend/app/tests/test_integration_notify.py || true
+         @echo "✅ Исправлено: datetime -> timezone-aware UTC, Telegram skip активен"
+
++# ================================
++# 💾 BACKUP Makefile (safety snapshot)
++# ================================
++backup-makefile:
++	@cp Makefile Makefile.backup.v2.4 2>/dev/null || true
++	@echo "📦 Makefile сохранён в Makefile.backup.v2.4"

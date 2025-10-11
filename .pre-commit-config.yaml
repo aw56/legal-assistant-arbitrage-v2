@@ -1,74 +1,110 @@
 ---
 # ============================================
-# ⚖️ Pre-commit DevOps Suite — Legal Assistant Arbitrage v2
+# ⚖️ Pre-commit DevOps Suite — Legal Assistant Arbitrage v2.4
 # ============================================
 
 repos:
-  # --- Black: автоформатирование кода ---
+  # --- 🖤 Black: автоформатирование Python-кода ---
   - repo: https://github.com/psf/black
-    rev: 24.8.0
+    rev: "25.9.0"
     hooks:
       - id: black
         language_version: python3.12
         args: [--line-length=88]
+        exclude: ^node_modules/
 
-  # --- isort: сортировка импортов ---
+  # --- 🔤 isort: сортировка импортов ---
   - repo: https://github.com/PyCQA/isort
-    rev: 5.13.2
+    rev: "6.1.0"
     hooks:
       - id: isort
-        name: isort (python imports)
+        name: isort (imports)
         language_version: python3.12
         args: [--profile=black]
+        exclude: ^node_modules/
 
-  # --- flake8: статический анализ Python ---
+  # --- 🧹 flake8: статический анализ Python ---
   - repo: https://github.com/pycqa/flake8
-    rev: 7.1.1
+    rev: "7.3.0"
     hooks:
       - id: flake8
+        name: flake8 (project)
         language_version: python3.12
-        args:
-          - --max-line-length=88
-          - --extend-ignore=E203,W503
+        entry: flake8 --config=.flake8
+        types: [python]
+        exclude: >
+          (?x)^(
+            node_modules/|
+            venv/|
+            artifacts/|
+            docs/|
+            alembic/|
+            backup/|
+            build/|
+            dist/
+          )
 
-  # --- Базовые pre-commit проверки ---
+  # --- 🧰 Базовые pre-commit проверки ---
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.6.0
+    rev: "v6.0.0"
     hooks:
       - id: trailing-whitespace
       - id: end-of-file-fixer
       - id: check-yaml
+        args: [--allow-multiple-documents]
       - id: check-json
       - id: check-added-large-files
+        exclude: ^node_modules/
+        args: ["--maxkb=2000"]
       - id: check-merge-conflict
 
-  # --- MarkdownLint: проверка форматирования Markdown ---
+  # --- 📝 MarkdownLint: форматирование документации ---
   - repo: https://github.com/igorshubovych/markdownlint-cli
-    rev: v0.41.0
+    rev: "v0.45.0"
     hooks:
       - id: markdownlint
         name: markdownlint (docs)
         entry: markdownlint
         language: node
-        files: \.md$
+        files: |
+          ^docs/.*\.md$|
+          ^README\.md$|
+          ^CONTRIBUTING\.md$
+        args: [--config, .markdownlint.yaml, --ignore-path, .markdownlintignore]
 
-  # --- Yamllint: валидация YAML (docker-compose, workflows) ---
+  # --- 🧾 Yamllint: валидация YAML ---
   - repo: https://github.com/adrienverge/yamllint
-    rev: v1.35.1
+    rev: "v1.37.1"
     hooks:
       - id: yamllint
-        files: \.(yml|yaml)$
-        args: [-d, "{extends: default, rules: {line-length: disable}}"]
+        name: yamllint (project only)
+        files: |
+          ^\.github/workflows/.*\.ya?ml$|
+          ^docker-compose.*\.ya?ml$|
+          ^\.yamllint\.yml$
+        exclude: |
+          ^node_modules/|
+          ^venv/|
+          ^artifacts/|
+          ^logs/
+        args:
+          - -d
+          - "{extends: default, rules: {line-length: disable, truthy: {check-keys: false}}}"
 
-  # --- Detect Secrets: поиск токенов и паролей ---
+  # --- 🔒 Detect Secrets: поиск токенов и паролей ---
   - repo: https://github.com/Yelp/detect-secrets
-    rev: v1.5.0
+    rev: "v1.5.0"
     hooks:
       - id: detect-secrets
-        args: ['--baseline', '.secrets.baseline']
-        exclude: 'tests/|artifacts/|docs/'
+        args: [--baseline, .secrets.baseline]
+        exclude: |
+          ^tests/|
+          ^artifacts/|
+          ^docs/|
+          ^node_modules/|
+          ^backup/
 
-  # --- Pytest перед пушем (pre-push) ---
+  # --- 🧪 Pytest перед пушем (pre-push) ---
   - repo: local
     hooks:
       - id: run-pytest-before-push
@@ -78,18 +114,21 @@ repos:
         stages: [pre-push]
         pass_filenames: false
 
-  # --- Автокоммит после исправлений (Post-commit hook) ---
+  # --- 🤖 Автокоммит после автофиксов (post-commit) ---
   - repo: local
     hooks:
       - id: auto-commit-after-fix
         name: Auto commit after pre-commit fixes
-        entry: bash -c '
+        entry: |
+          bash -c '
           if git diff --quiet; then
             echo "[auto-commit-after-fix] Nothing to fix, skipping.";
           else
-            echo "[auto-commit-after-fix] Detected fixed files, amending commit...";
-            git add -u && git commit --amend --no-edit || true;
-          fi'
+            echo "[auto-commit-after-fix] Detected fixed files.";
+            git add -u &&
+            git commit --amend --no-edit || true;
+          fi
+          '
         language: system
         always_run: true
         pass_filenames: false

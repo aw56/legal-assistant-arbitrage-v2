@@ -7,6 +7,7 @@ from backend.app.services import users
 def test_create_user(db_session: Session):
     user_in = schemas.UserCreate(
         username="user1",
+        email="user1@example.com",
         password="pwd123",
         role=schemas.UserRole.lawyer,  # ✅ теперь это доступно
     )
@@ -19,6 +20,7 @@ def test_create_user(db_session: Session):
 def test_read_users(db_session: Session):
     user_in = schemas.UserCreate(
         username="user2",
+        email="user2@example.com",
         password="pwd123",
         role=schemas.UserRole.user,
     )
@@ -31,6 +33,7 @@ def test_read_users(db_session: Session):
 def test_update_user(db_session: Session):
     user_in = schemas.UserCreate(
         username="user3",
+        email="user3@example.com",
         password="pwd123",
         role=schemas.UserRole.lawyer,
     )
@@ -45,6 +48,7 @@ def test_update_user(db_session: Session):
 def test_delete_user(db_session: Session):
     user_in = schemas.UserCreate(
         username="user4",
+        email="user4@example.com",
         password="pwd123",
         role=schemas.UserRole.user,
     )

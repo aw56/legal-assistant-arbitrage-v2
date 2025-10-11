@@ -1,0 +1,222 @@
+# ================================================
+# ⚖️ Legal Assistant Arbitrage v2.4 — Unified CI Makefile
+# ================================================
+.DEFAULT_GOAL := help
+
+# --- Locale settings ---
+SHELL := /bin/bash
+.SHELLFLAGS := -o pipefail -c
+export LANG := en_US.UTF-8
+export LC_ALL := en_US.UTF-8
+export LANGUAGE := en_US.UTF-8
+
+# --- Base vars ---
+COMPOSE_FILE        = docker-compose.prod.yml
+BACKEND_CONTAINER  := $(shell docker compose -f $(COMPOSE_FILE) ps -q backend)
+DB_CONTAINER        = legal-assistant-db
+DB_NAME             = legal_assistant_db
+DB_USER             = admin
+DB_DUMP_FILE        = backup.sql
+SEED_FILE           = seeds/init_data.sql
+FIXTURES_DIR        = fixtures
+
+# ============================
+# 📦 INSTALL / SETUP
+# ============================
+install: ## 📦 Установить prod зависимости
+	docker exec -it $(BACKEND_CONTAINER) pip install -r requirements.txt
+
+install-dev: ## 📦 Установить dev зависимости
+	docker exec -it $(BACKEND_CONTAINER) pip install -r requirements-dev.txt
+
+setup-dev: install-dev up migrate seed test ## 🚀 Dev setup
+	@echo "✅ Dev окружение готово"
+
+setup-prod: rebuild migrate seed ## 🚀 Prod setup
+	@echo "✅ Prod окружение готово"
+
+# ============================
+# 🐳 DOCKER
+# ============================
+up: ## 🚀 Запуск контейнеров
+	docker compose -f $(COMPOSE_FILE) up -d --build
+
+down: ## ⏹️ Остановка
+	docker compose -f $(COMPOSE_FILE) down
+
+rebuild: ## 🔄 Пересоздать
+	docker compose -f $(COMPOSE_FILE) down --volumes --remove-orphans
+	docker compose -f $(COMPOSE_FILE) up -d --build --force-recreate
+
+logs:
+	docker compose -f $(COMPOSE_FILE) logs -f
+
+ps:
+	docker compose -f $(COMPOSE_FILE) ps
+
+shell:
+	docker exec -it $(BACKEND_CONTAINER) bash
+
+# ============================
+# 🗄️ MIGRATIONS (Alembic)
+# ============================
+migrate:
+	docker exec -it $(BACKEND_CONTAINER) alembic upgrade head
+
+makemigrations:
+	docker exec -it $(BACKEND_CONTAINER) alembic revision --autogenerate -m "new migration"
+
+fix-migrations:
+	docker exec -it $(BACKEND_CONTAINER) python3 scripts/fix_migrations.py
+
+current:
+	docker exec -it $(BACKEND_CONTAINER) alembic current
+
+# ============================
+# ❤️ HEALTH / SMOKE TESTS
+# ============================
+wait-for-api:
+	@echo "⏳ Ожидание API..."
+	@until curl -s http://127.0.0.1:8080/api/health | grep '"ok"' > /dev/null; do echo "…"; sleep 2; done
+	@echo "✅ API готов!"
+
+smoke:
+	@pytest -m smoke -v --disable-warnings --maxfail=1 --tb=short || (echo "❌ Smoke не пройдены"; exit 1)
+
+smoke-ci:
+	@echo "🤖 Smoke-тесты (CI)..."
+	@pytest -m smoke -v --disable-warnings || ( \
+		echo "❌ Smoke не пройдены"; \
+		python3 backend/app/utils/notify_telegram.py "🚨 Smoke упали в CI ❌"; \
+		exit 1; \
+	)
+	@echo "✅ Smoke успешно!"
+
+# ============================
+# ✅ TESTS / INTEGRATION
+# ============================
+test:
+	docker exec -it $(BACKEND_CONTAINER) pytest backend/app/tests
+
+test-ci-v33:
+	@echo "🚀 Newman CI (AutoAuth v3.3)..."
+	newman run docs/Legal_Assistant_Arbitrage_v3.3_CI.postman_collection.json \
+		-e docs/Legal_Assistant_Env.postman_environment.json \
+		--reporters cli,html \
+		--reporter-html-export artifacts/newman_report_v33.html || { \
+			echo '❌ Ошибка тестов (см. отчёт)'; exit 1; }
+
+test-ci-v3: ## Полный CI-цикл (pytest + Postman + снапшот + push)
+	@echo "🚀 Полный CI-цикл AutoAuth v3.3"
+	@START=$$(date '+%Y-%m-%d %H:%M:%S'); \
+	$(MAKE) test-ci-v33 && STATUS="✅ OK" || STATUS="❌ Ошибка"; \
+	echo "📸 Снапшот..."; $(MAKE) progress-snapshot; \
+	echo "🧾 Запись в PROGRESS_TACTICAL.md..."; \
+	echo "" >> docs/PROGRESS_TACTICAL.md; \
+	echo "🧪 CI v3.3 — $$STATUS ($$START)" >> docs/PROGRESS_TACTICAL.md; \
+	$(MAKE) progress-auto-push; \
+	echo "✅ Полный CI завершён."
+
+integration:
+	@pytest -m integration -v --disable-warnings --maxfail=1 || (echo "❌ Интеграционные не пройдены"; exit 1)
+
+# ============================
+# 📢 TELEGRAM
+# ============================
+TELEGRAM_BOT_TOKEN ?= $(TELEGRAM_BOT_TOKEN)
+TELEGRAM_CHAT_ID ?= $(TELEGRAM_CHAT_ID)
+MESSAGE ?= "✅ CI успешно завершён."
+
+telegram-notify:
+	@python3 backend/app/utils/notify_telegram.py "$(MESSAGE)"
+
+telegram-notify-test:
+	@$(MAKE) telegram-notify MESSAGE="🚀 Тест уведомления из Makefile"
+
+# ============================
+# 🧩 SED TOOLKIT (v3.7)
+# ============================
+SED_RULES := scripts/sed_auto_rules.txt
+SED_LOG := logs/sed.log
+SED_CSV := logs/sed_auto_log.csv
+SED_BACKUP_DIR := backup/sed
+SED_TIMESTAMP := $(shell date '+%Y-%m-%d_%H-%M-%S')
+
+sed-validate:
+	@file $(SED_RULES)
+	@grep -q '→' $(SED_RULES) || (echo "❌ Нет →"; exit 1)
+	@echo "✅ Правила корректны"
+
+sed-auto:
+	@mkdir -p logs $(SED_BACKUP_DIR)
+	@echo "🤖 sed-auto запускается..."
+	@> $(SED_LOG); echo "pattern,replace,file,timestamp" > $(SED_CSV)
+	@while IFS='→' read -r p r; do \
+		[ -z "$$p" ] && continue; \
+		files=$$(grep -rl "$$p" backend app Makefile scripts 2>/dev/null || true); \
+		for f in $$files; do \
+			cp "$$f" "$(SED_BACKUP_DIR)/$$(basename $$f)_$(SED_TIMESTAMP).bak"; \
+			sed -i "s|$$p|$$r|g" "$$f"; \
+			echo "$$p,$$r,$$f,$(SED_TIMESTAMP)" >> $(SED_CSV); \
+			echo "✅ $$f"; \
+		done; \
+	done < $(SED_RULES)
+	@echo "✅ sed-auto завершено. Логи: $(SED_LOG)"
+
+# ============================
+# 📘 PROGRESS & CI-DOCS v2.4
+# ============================
+PROGRESS_DIR := artifacts
+PROGRESS_DOCS := docs
+PROGRESS_DATE := $(shell date '+%Y%m%d')
+PROGRESS_TIME := $(shell date '+%H%M')
+PROGRESS_FILE := $(PROGRESS_DOCS)/PROGRESS_$(PROGRESS_DATE).md
+PROGRESS_SNAPSHOT := $(PROGRESS_DIR)/PROGRESS_$(PROGRESS_DATE)_$(PROGRESS_TIME).md
+PROGRESS_TEMPLATE := $(PROGRESS_DOCS)/PROGRESS_TEMPLATE.md
+TACTICAL_FILE := $(PROGRESS_DOCS)/PROGRESS_TACTICAL.md
+
+progress-template:
+	@mkdir -p $(PROGRESS_DOCS)
+	@cp $(PROGRESS_TEMPLATE) $(PROGRESS_FILE) 2>/dev/null || \
+	( echo "# 📘 Отчёт $(PROGRESS_DATE)" > $(PROGRESS_FILE); echo "**Дата:** $$(date)" >> $(PROGRESS_FILE) )
+	@echo "✅ Создан: $(PROGRESS_FILE)"
+
+progress-append:
+	@echo "✏️ Вставь факты (Ctrl+D для завершения):"
+	@cat >> $(PROGRESS_FILE)
+	@echo "✅ Добавлено в $(PROGRESS_FILE)"
+
+progress-snapshot:
+	@mkdir -p $(PROGRESS_DIR)
+	@cp $(PROGRESS_FILE) $(PROGRESS_SNAPSHOT)
+	@echo "✅ Снапшот: $(PROGRESS_SNAPSHOT)"
+
+progress-auto-push:
+	@$(MAKE) progress-snapshot
+	@git add docs/PROGRESS_*.md artifacts/PROGRESS_*.md || true
+	@git commit -m "📘 progress snapshot $(PROGRESS_DATE)_$(PROGRESS_TIME)" || echo "⚠️ Нет изменений."
+	@git push origin main
+	@echo "✅ Прогресс отправлен в GitHub"
+
+progress-help:
+	@echo "make progress-template  → создать отчёт"
+	@echo "make progress-append    → добавить факты"
+	@echo "make progress-snapshot  → снапшот"
+	@echo "make progress-auto-push → снапшот + git push"
+
+# ============================
+# 📚 DOCS & HELP
+# ============================
+apidocs:
+	docker compose -f $(COMPOSE_FILE) exec backend sh -c "PYTHONPATH=/code python3 scripts/generate_docs.py"
+
+archdocs:
+	docker compose -f $(COMPOSE_FILE) exec backend sh -c "PYTHONPATH=/code python3 scripts/generate_architecture.py"
+
+docs: apidocs archdocs
+	@echo "📚 Документация обновлена."
+
+help:
+	@echo "=== 🧭 Makefile Legal Assistant Arbitrage v2.4 ==="
+	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
+	| awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-28s\033[0m %s\n", $$1, $$2}'

@@ -1,5 +1,5 @@
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
@@ -27,7 +27,7 @@ def create_decision(db: Session, decision: schemas.DecisionCreate) -> models.Dec
     new_decision = models.Decision(
         case_number=decision.case_number,
         court=decision.court,
-        date_decided=decision.date_decided or datetime.utcnow(),
+        date_decided=decision.date_decided or datetime.now(timezone.utc),
         summary=decision.summary,
         law_id=decision.law_id,
         user_id=decision.user_id,
@@ -62,7 +62,7 @@ def update_decision(
         setattr(decision, key, value)
 
     # ⚡ обновляем timestamp
-    decision.updated_at = datetime.utcnow()
+    decision.updated_at = datetime.now(timezone.utc)
 
     db.commit()
     db.refresh(decision)

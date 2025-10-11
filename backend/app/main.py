@@ -49,10 +49,10 @@ def root():
     """Базовая точка API."""
     return {
         "message": "⚖️ Добро пожаловать в Legal Assistant Arbitrage API",
-        "docs": "/docs",
-        "health": "/api/health",
-        "auth": "/api/auth",
-        "reset": "/api/reset",
+        "docs_url": "/docs",
+        "health_url": "/api/health",
+        "auth_url": "/api/auth",
+        "reset_url": "/api/reset",
     }
 
 
@@ -86,14 +86,6 @@ def register_routes(app: FastAPI):
 
 # === Подключаем роуты ===
 register_routes(app)
-
-# === Импорт отдельных критичных маршрутов ===
-from backend.app.routes import docs, reset
-
-app.include_router(docs.router)
-app.include_router(reset.router)
-
-logger.info("✅ Роуты docs и reset подключены.")
 
 
 # === Расширенная команда полного сброса БД ===

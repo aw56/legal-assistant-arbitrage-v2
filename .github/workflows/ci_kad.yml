@@ -1,12 +1,14 @@
 ---
-name: 🧪 KAD Integration & API Health CI
+name: "🧪 KAD Integration & API Health CI"
 
-on:
+on:  # yamllint disable-line rule:truthy
   push:
-    branches: [main]
+    branches:
+      - main
   pull_request:
-    branches: [main]
-  workflow_dispatch:
+    branches:
+      - main
+  workflow_dispatch: {}
 
 jobs:
   kad-ci:
@@ -21,7 +23,7 @@ jobs:
           POSTGRES_PASSWORD: admin
           POSTGRES_DB: legal_assistant_db
         ports:
-          - 5432:5432
+          - "5432:5432"
         options: >-
           --health-cmd "pg_isready -U admin -d legal_assistant_db"
           --health-interval 5s
@@ -29,27 +31,30 @@ jobs:
           --health-retries 5
 
     steps:
-      - name: 📦 Checkout repository
+      - name: "📦 Checkout repository"
         uses: actions/checkout@v4
 
-      - name: 🐍 Set up Python 3.12
+      - name: "🐍 Set up Python 3.12"
         uses: actions/setup-python@v5
         with:
-          python-version: '3.12'
+          python-version: "3.12"
 
-      - name: 📦 Install dependencies
+      - name: "📦 Install dependencies"
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
           pip install pytest pytest-asyncio respx ruff
 
-      - name: 🧪 Run Kad integration tests
+      - name: "🧪 Run Kad integration tests"
         run: |
           pytest -q backend/app/tests/test_kad_api.py -vv
 
-      - name: 💓 Healthcheck API (local FastAPI run)
+      - name: "💓 Healthcheck API (local FastAPI run)"
         run: |
-          nohup uvicorn backend.app.main:app --host 127.0.0.1 --port 8000 > uvicorn.log 2>&1 &
+          nohup uvicorn backend.app.main:app \
+            --host 127.0.0.1 \
+            --port 8000 > uvicorn.log 2>&1 &
           echo "⏳ Waiting for FastAPI to start..."
           sleep 10
-          curl -s http://127.0.0.1:8000/api/health || (cat uvicorn.log && exit 1)
+          curl -s http://127.0.0.1:8000/api/health \
+            || (cat uvicorn.log && exit 1)

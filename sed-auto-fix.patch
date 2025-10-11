@@ -1,0 +1,29 @@
+diff --git a/Makefile b/Makefile
+index 1111111..2222222 100644
+--- a/Makefile
++++ b/Makefile
+@@ -675,13 +675,18 @@ sed-validate:
+         fi
+
+ # ================================================
+-# 🤖 Авто-замены по списку (с предвалидацией)
+-sed-auto: sed-validate
+-        @echo "🤖 Применение авто-правил из scripts/sed_auto_rules.txt..."
+-        @while IFS='->' read -r OLD NEW; do \
+-                if [ -n "$$OLD" ] && [ -n "$$NEW" ]; then \
+-                        find backend docs -type f -exec sed -i "s/$$OLD/$$NEW/g" {} +; \
+-                        echo "✅ Заменено: $$OLD → $$NEW"; \
+-                fi; \
+-        done < scripts/sed_auto_rules.txt
+-        @echo "🚀 sed-auto завершено успешно."
++# 🤖 Авто-замены по списку (с предвалидацией + Unicode-совместимостью)
++sed-auto: sed-validate
++	@echo "🤖 Применение авто-правил из scripts/sed_auto_rules.txt..."
++	@export LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8; \
++	while IFS='→' read -r OLD NEW; do \
++		if [ -n "$$OLD" ] && [ -n "$$NEW" ]; then \
++			find backend docs -type f -exec sed -i "s/$$OLD/$$NEW/g" {} +; \
++			printf '✅ Заменено: %s → %s\n' "$$OLD" "$$NEW"; \
++		fi; \
++	done < scripts/sed_auto_rules.txt
++	@echo "🚀 sed-auto завершено успешно."

@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 
 from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, Text
 from sqlalchemy.dialects.postgresql import ENUM
@@ -18,7 +18,7 @@ class User(Base):
     role = Column(
         ENUM(UserRole, name="userrole_enum"), default=UserRole.client, nullable=False
     )
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     decisions = relationship("Decision", back_populates="user")
 
@@ -44,9 +44,11 @@ class Decision(Base):
     date_decided = Column(DateTime, nullable=False)
     summary = Column(Text, nullable=True)
 
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     updated_at = Column(
-        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow
+        DateTime,
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
     )  # ✅ новое поле
 
     law_id = Column(Integer, ForeignKey("laws.id"), nullable=True)

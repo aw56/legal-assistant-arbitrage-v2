@@ -1,0 +1,44 @@
+"""
+Health-check API для Legal Assistant Arbitrage v2.
+Проверяет доступность основных подсистем:
+ - База данных (PostgreSQL / SQLite)
+ - Внешние интеграции (kad.arbitr.ru)
+"""
+import asyncio
+from fastapi import APIRouter
+from sqlalchemy import text
+
+from backend.app.database import engine
+from backend.app.services.kad_service import check_kad_health
+
+router = APIRouter()
+
+@router.get("/health", tags=["health"])
+async def health_check():
+    """
+    🔍 Комплексная проверка состояния системы.
+    Возвращает агрегированный статус:
+    {
+        "status": "ok",
+        "services": {"db": "ok", "kad": "ok"}
+    }
+    """
+    results = {"db": "unknown", "kad": "unknown"}
+    global_status = "ok"
+
+    # --- Проверка базы данных ---
+    try:
+        async with engine.begin() as conn:
+            await conn.execute(text("SELECT 1"))
+        results["db"] = "ok"
+    except Exception as e:
+        results["db"] = f"error: {e}"
+        global_status = "error"
+
+    # --- Проверка kad.arbitr.ru ---
+    kad_result = await check_kad_health()
+    results["kad"] = kad_result.get("status", "error")
+    if results["kad"] != "ok":
+        global_status = "error"
+
+    return {"status": global_status, "services": results}

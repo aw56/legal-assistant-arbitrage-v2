@@ -1,0 +1,39 @@
+diff --git a/Makefile b/Makefile
+index 9d7adc8..7afca50 100644
+--- a/Makefile
++++ b/Makefile
+@@ -487,18 +487,26 @@ test-ci-v33: ## 🚀 Запуск CI-тестов Postman (AutoAuth v3.3 Stable)
+ 			echo '❌ Ошибка во время тестов (см. artifacts/newman_report_v33.html)'; exit 1; }
+
+ # ==========================================
+-# 🚀 Unified CI Pipeline (test-ci-v3)
++# 🧪 CI v3.3 AutoAuth — Snapshot + Logging
+ # ==========================================
+ .PHONY: test-ci-v3
+
+-test-ci-v3: ## 🚀 Полный цикл: тесты + снапшот + push
++test-ci-v3: ## 🚀 Полный цикл: тесты + снапшот + push (+ лог в PROGRESS_TACTICAL.md)
+ 	@echo "🚀 Запуск полного CI цикла (pytest + Postman + снапшот + GitHub push)..."
+-	$(MAKE) test-ci-v33
+-	@echo "📸 Создаю снапшот прогресса..."
+-	$(MAKE) progress-snapshot
+-	@echo "📘 Фиксирую снапшот и пушу в GitHub..."
+-	$(MAKE) progress-auto-push
+-	@echo "✅ Полный CI цикл успешно завершён!"
++	@START_TIME=$$(date '+%Y-%m-%d %H:%M:%S'); \
++	$(MAKE) test-ci-v33 && STATUS="✅ Успешно" || STATUS="❌ Ошибка"; \
++	echo ""; \
++	echo "📸 Создаю снапшот прогресса..."; \
++	$(MAKE) progress-snapshot; \
++	echo ""; \
++	echo "🧾 Добавляю запись в docs/PROGRESS_TACTICAL.md..."; \
++	echo "" >> docs/PROGRESS_TACTICAL.md; \
++	echo "🧪 CI v3.3 — AutoAuth Stable $$STATUS" >> docs/PROGRESS_TACTICAL.md; \
++	echo "Дата: $$START_TIME" >> docs/PROGRESS_TACTICAL.md; \
++	echo "" >> docs/PROGRESS_TACTICAL.md; \
++	echo "📘 Фиксирую снапшот и пушу в GitHub..."; \
++	$(MAKE) progress-auto-push; \
++	echo "✅ Полный CI цикл успешно завершён!"
+
+ # =================================
+ # ---- KAD integration helpers ----

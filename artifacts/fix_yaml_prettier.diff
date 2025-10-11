@@ -1,0 +1,176 @@
+diff --git a/.github/workflows/backup.yml b/.github/workflows/backup.yml
+index 8ab0dd1..cf7b674 100644
+--- a/.github/workflows/backup.yml
++++ b/.github/workflows/backup.yml
+@@ -3,8 +3,8 @@ name: 💾 Daily DB Backup
+
+ on:
+   schedule:
+-    - cron: "0 3 * * *"  # каждый день в 03:00 UTC
+-  workflow_dispatch:      # запуск вручную из GitHub Actions
++    - cron: "0 3 * * *" # каждый день в 03:00 UTC
++  workflow_dispatch: # запуск вручную из GitHub Actions
+
+ jobs:
+   backup:
+diff --git a/.github/workflows/ci_kad.yml b/.github/workflows/ci_kad.yml
+index e51836c..e8be966 100644
+--- a/.github/workflows/ci_kad.yml
++++ b/.github/workflows/ci_kad.yml
+@@ -35,7 +35,7 @@ jobs:
+       - name: 🐍 Set up Python 3.12
+         uses: actions/setup-python@v5
+         with:
+-          python-version: '3.12'
++          python-version: "3.12"
+
+       - name: 📦 Install dependencies
+         run: |
+diff --git a/.github/workflows/docker.yml b/.github/workflows/docker.yml
+index e5fd6f8..26526de 100644
+--- a/.github/workflows/docker.yml
++++ b/.github/workflows/docker.yml
+@@ -8,7 +8,7 @@ on:
+       - completed
+   push:
+     tags:
+-      - "v*.*.*"   # автосборка при релизе (например, v1.0.0)
++      - "v*.*.*" # автосборка при релизе (например, v1.0.0)
+   workflow_dispatch: # ручной запуск из Actions UI
+
+ jobs:
+diff --git a/Makefile b/Makefile
+index 29acbc0..ef4ca93 100644
+--- a/Makefile
++++ b/Makefile
+@@ -415,17 +415,23 @@ fix-docs: ## 🧩 Исправление markdownlint и commit
+
+ fix-yaml: ## 🧹 Исправление YAML (yamllint)
+ 	@echo "🧹 Исправление YAML..."
++	# Приведение синтаксиса и булевых значений
+ 	find .github/workflows -type f -name "*.yml" \
+ 	 -exec sed -i 's/\[ /[/' {} \; \
+ 	 -exec sed -i 's/ \]/]/' {} \; \
+ 	 -exec sed -i 's/\"true\"/true/' {} \; \
+-	 -exec sed -i 's/\"false\"/false/' {} \;
+-	@sed -i '1s/^/---\n/' .pre-commit-config.yaml || true
+-	@sed -i '1s/^/---\n/' docker-compose.yml || true
+-	@sed -i '1s/^/---\n/' docker-compose.prod.yml || true
++	 -exec sed -i 's/\"false\"/false/' {} \; \
++	 -exec sed -i '1{/^---/!s/^/---\n/}' {} + \
++	 -exec sed -i 's/\([^ ]\)#/\1  #/g' {} +
++	# Добавляем заголовок в ключевые YAML
++	@sed -i '1{/^---/!s/^/---\n/}' .pre-commit-config.yaml || true
++	@sed -i '1{/^---/!s/^/---\n/}' docker-compose.yml || true
++	@sed -i '1{/^---/!s/^/---\n/}' docker-compose.prod.yml || true
++	# Проверка yamllint (без node_modules)
++	yamllint -c .yamllint.yml .github/workflows || true
+ 	@git add .github/workflows .pre-commit-config.yaml docker-compose.yml docker-compose.prod.yml || true
+-	@git commit -m "chore(yaml): auto-fix yamllint compliance" || echo "⚠️ Нет изменений."
+-	@echo "✅ YAML выровнен."
++	@git commit -m "chore(yaml): auto-fix yamllint compliance (finalized)" || echo "⚠️ Нет изменений."
++	@echo "✅ YAML полностью выровнен."
+
+ # =================================
+ # 🧭 Progress (daily reports)
+@@ -732,6 +738,17 @@ fix-final:
+ 	git commit -m "fix: auto-correct pre-commit issues before finalize v2.4" || true
+ 	@echo "✅ Все pre-commit ошибки устранены."
+
++# ===========================
++# 🧹 FIX YAML WRAP (Prettier)
++# ===========================
++fix-yaml-wrap: ## 🧹 Переформатировать YAML под 80 символов (Prettier)
++	@echo "🧹 Форматируем YAML-файлы (до 80 символов в строке)..."
++	npx prettier --write "**/*.yml" --print-width 80
++	@git diff -- . ':!node_modules' > artifacts/fix_yaml_prettier.diff || true
++	@git add .github/workflows/*.yml docker-compose*.yml .yamllint.yml || true
++	@git commit -m "chore(yaml): reformat with Prettier (80 chars width)" || echo "⚠️ Нет изменений."
++	@echo "✅ YAML успешно переформатирован и зафиксирован."
++
+ # =================================
+ # 📖 Help
+ # =================================
+diff --git a/backend/app/routes/auth.py b/backend/app/routes/auth.py
+index c7d17b8..38cfcdf 100644
+--- a/backend/app/routes/auth.py
++++ b/backend/app/routes/auth.py
+@@ -2,8 +2,11 @@ from fastapi import APIRouter, Depends, HTTPException, status
+ from sqlalchemy.orm import Session
+
+ from backend.app import models, schemas
+-from backend.app.core.security import (create_access_token, get_current_user,
+-                                       verify_password)
++from backend.app.core.security import (
++    create_access_token,
++    get_current_user,
++    verify_password,
++)
+ from backend.app.database import get_db
+ from backend.app.services import users as user_service
+
+diff --git a/backend/app/schemas/__init__.py b/backend/app/schemas/__init__.py
+index cc47b92..968045d 100644
+--- a/backend/app/schemas/__init__.py
++++ b/backend/app/schemas/__init__.py
+@@ -1,7 +1,6 @@
+ from .decision import Decision, DecisionCreate, DecisionUpdate
+ from .law import Law, LawCreate, LawUpdate
+-from .user import (Token, UserBase, UserCreate, UserLogin, UserRead, UserRole,
+-                   UserUpdate)
++from .user import Token, UserBase, UserCreate, UserLogin, UserRead, UserRole, UserUpdate
+
+ __all__ = [
+     # --- Users ---
+diff --git a/backend/app/tests/test_kad_api.py b/backend/app/tests/test_kad_api.py
+index dae352e..1585052 100644
+--- a/backend/app/tests/test_kad_api.py
++++ b/backend/app/tests/test_kad_api.py
+@@ -10,9 +10,15 @@ import httpx
+ import pytest
+ import respx
+
+-from backend.app.integrations.kad_api import (CaseDetails, CaseShort, KadAPI,
+-                                              KadAuthError, KadConfig,
+-                                              KadNotFound, KadSync)
++from backend.app.integrations.kad_api import (
++    CaseDetails,
++    CaseShort,
++    KadAPI,
++    KadAuthError,
++    KadConfig,
++    KadNotFound,
++    KadSync,
++)
+
+ BASE = "https://kad.example.local"
+
+diff --git a/docker-compose.prod.yml b/docker-compose.prod.yml
+index 6f429b3..9ad5f71 100644
+--- a/docker-compose.prod.yml
++++ b/docker-compose.prod.yml
+@@ -1,5 +1,4 @@
+ ---
+----
+ services:
+   db:
+     image: postgres:15
+@@ -35,7 +34,7 @@ services:
+       - "8080:8000"
+     volumes:
+       - .:/code
+-      - ./docs:/code/docs    # ✅ добавлено — пробрасываем документацию внутрь контейнера
++      - ./docs:/code/docs # ✅ добавлено — пробрасываем документацию внутрь контейнера
+
+ volumes:
+   pgdata:
+diff --git a/docker-compose.yml b/docker-compose.yml
+index bd9d31b..8164132 100644
+--- a/docker-compose.yml
++++ b/docker-compose.yml
+@@ -1,5 +1,4 @@
+ ---
+----
+ version: "3.9"
+ services:
+   db:

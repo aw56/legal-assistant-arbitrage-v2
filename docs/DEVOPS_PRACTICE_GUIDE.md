@@ -1,6 +1,6 @@
 # 📘 DEVOPS_PRACTICE_GUIDE.md
 
-**Legal Assistant Arbitrage v2 — Корпоративное DevOps-руководство**
+## Legal Assistant Arbitrage v2 — Корпоративное DevOps-руководство
 
 ---
 

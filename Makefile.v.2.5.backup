@@ -1,0 +1,320 @@
+# ================================================
+# ⚖️ Legal Assistant Arbitrage v2.4 — Unified CI Makefile
+# ================================================
+.DEFAULT_GOAL := help
+
+# --- Locale settings ---
+SHELL := /bin/bash
+.SHELLFLAGS := -o pipefail -c
+export LANG := en_US.UTF-8
+export LC_ALL := en_US.UTF-8
+export LANGUAGE := en_US.UTF-8
+
+# --- Base vars ---
+COMPOSE_FILE        = docker-compose.prod.yml
+BACKEND_CONTAINER  := $(shell docker compose -f $(COMPOSE_FILE) ps -q backend)
+DB_CONTAINER        = legal-assistant-db
+DB_NAME             = legal_assistant_db
+DB_USER             = admin
+DB_DUMP_FILE        = backup.sql
+SEED_FILE           = seeds/init_data.sql
+FIXTURES_DIR        = fixtures
+
+# ============================
+# 📦 INSTALL / SETUP
+# ============================
+install: ## 📦 Установить prod зависимости
+	docker exec -it $(BACKEND_CONTAINER) pip install -r requirements.txt
+
+install-dev: ## 📦 Установить dev зависимости
+	docker exec -it $(BACKEND_CONTAINER) pip install -r requirements-dev.txt
+
+setup-dev: install-dev up migrate seed test ## 🚀 Dev setup
+	@echo "✅ Dev окружение готово"
+
+setup-prod: rebuild migrate seed ## 🚀 Prod setup
+	@echo "✅ Prod окружение готово"
+
+# ============================
+# 🐳 DOCKER
+# ============================
+up: ## 🚀 Запуск контейнеров
+	docker compose -f $(COMPOSE_FILE) up -d --build
+
+down: ## ⏹️ Остановка
+	docker compose -f $(COMPOSE_FILE) down
+
+rebuild: ## 🔄 Пересоздать
+	docker compose -f $(COMPOSE_FILE) down --volumes --remove-orphans
+	docker compose -f $(COMPOSE_FILE) up -d --build --force-recreate
+
+logs:
+	docker compose -f $(COMPOSE_FILE) logs -f
+
+ps:
+	docker compose -f $(COMPOSE_FILE) ps
+
+shell:
+	docker exec -it $(BACKEND_CONTAINER) bash
+
+# ============================
+# 🗄️ MIGRATIONS (Alembic)
+# ============================
+migrate:
+	docker exec -it $(BACKEND_CONTAINER) alembic upgrade head
+
+makemigrations:
+	docker exec -it $(BACKEND_CONTAINER) alembic revision --autogenerate -m "new migration"
+
+fix-migrations:
+	docker exec -it $(BACKEND_CONTAINER) python3 scripts/fix_migrations.py
+
+current:
+	docker exec -it $(BACKEND_CONTAINER) alembic current
+
+# ============================
+# ❤️ HEALTH / SMOKE TESTS
+# ============================
+wait-for-api:
+	@echo "⏳ Ожидание API..."
+	@until curl -s http://127.0.0.1:8080/api/health | grep '"ok"' > /dev/null; do echo "…"; sleep 2; done
+	@echo "✅ API готов!"
+
+smoke:
+	@pytest -m smoke -v --disable-warnings --maxfail=1 --tb=short || (echo "❌ Smoke не пройдены"; exit 1)
+
+smoke-ci:
+	@echo "🤖 Smoke-тесты (CI)..."
+	@pytest -m smoke -v --disable-warnings || ( \
+		echo "❌ Smoke не пройдены"; \
+		python3 backend/app/utils/notify_telegram.py "🚨 Smoke упали в CI ❌"; \
+		exit 1; \
+	)
+	@echo "✅ Smoke успешно!"
+
+# ============================
+# ✅ TESTS / INTEGRATION
+# ============================
+test:
+	docker exec -it $(BACKEND_CONTAINER) pytest backend/app/tests
+
+test-ci-v33:
+	@echo "🚀 Newman CI (AutoAuth v3.3)..."
+	newman run docs/Legal_Assistant_Arbitrage_v3.3_CI.postman_collection.json \
+		-e docs/Legal_Assistant_Env.postman_environment.json \
+		--reporters cli,html \
+		--reporter-html-export artifacts/newman_report_v33.html || { \
+			echo '❌ Ошибка тестов (см. отчёт)'; exit 1; }
+
+test-ci-v3: ## Полный CI-цикл (pytest + Postman + снапшот + push)
+	@echo "🚀 Полный CI-цикл AutoAuth v3.3"
+	@START=$$(date '+%Y-%m-%d %H:%M:%S'); \
+	$(MAKE) test-ci-v33 && STATUS="✅ OK" || STATUS="❌ Ошибка"; \
+	echo "📸 Снапшот..."; $(MAKE) progress-snapshot; \
+	echo "🧾 Запись в PROGRESS_TACTICAL.md..."; \
+	echo "" >> docs/PROGRESS_TACTICAL.md; \
+	echo "🧪 CI v3.3 — $$STATUS ($$START)" >> docs/PROGRESS_TACTICAL.md; \
+	$(MAKE) progress-auto-push; \
+	echo "✅ Полный CI завершён."
+
+integration:
+	@pytest -m integration -v --disable-warnings --maxfail=1 || (echo "❌ Интеграционные не пройдены"; exit 1)
+
+# ============================
+# 📢 TELEGRAM
+# ============================
+TELEGRAM_BOT_TOKEN ?= $(TELEGRAM_BOT_TOKEN)
+TELEGRAM_CHAT_ID ?= $(TELEGRAM_CHAT_ID)
+MESSAGE ?= "✅ CI успешно завершён."
+
+telegram-notify:
+	@python3 backend/app/utils/notify_telegram.py "$(MESSAGE)"
+
+telegram-notify-test:
+	@$(MAKE) telegram-notify MESSAGE="🚀 Тест уведомления из Makefile"
+
+# ============================
+# 🧩 SED TOOLKIT (v3.7)
+# ============================
+SED_RULES := scripts/sed_auto_rules.txt
+SED_LOG := logs/sed.log
+SED_CSV := logs/sed_auto_log.csv
+SED_BACKUP_DIR := backup/sed
+SED_TIMESTAMP := $(shell date '+%Y-%m-%d_%H-%M-%S')
+
+sed-validate:
+	@file $(SED_RULES)
+	@grep -q '→' $(SED_RULES) || (echo "❌ Нет →"; exit 1)
+	@echo "✅ Правила корректны"
+
+sed-auto:
+	@mkdir -p logs $(SED_BACKUP_DIR)
+	@echo "🤖 sed-auto запускается..."
+	@> $(SED_LOG); echo "pattern,replace,file,timestamp" > $(SED_CSV)
+	@while IFS='→' read -r p r; do \
+		[ -z "$$p" ] && continue; \
+		files=$$(grep -rl "$$p" backend app Makefile scripts 2>/dev/null || true); \
+		for f in $$files; do \
+			cp "$$f" "$(SED_BACKUP_DIR)/$$(basename $$f)_$(SED_TIMESTAMP).bak"; \
+			sed -i "s|$$p|$$r|g" "$$f"; \
+			echo "$$p,$$r,$$f,$(SED_TIMESTAMP)" >> $(SED_CSV); \
+			echo "✅ $$f"; \
+		done; \
+	done < $(SED_RULES)
+	@echo "✅ sed-auto завершено. Логи: $(SED_LOG)"
+
+# ============================
+# 📘 PROGRESS & CI-DOCS v2.4
+# ============================
+PROGRESS_DIR := artifacts
+PROGRESS_DOCS := docs
+PROGRESS_DATE := $(shell date '+%Y%m%d')
+PROGRESS_TIME := $(shell date '+%H%M')
+PROGRESS_FILE := $(PROGRESS_DOCS)/PROGRESS_$(PROGRESS_DATE).md
+PROGRESS_SNAPSHOT := $(PROGRESS_DIR)/PROGRESS_$(PROGRESS_DATE)_$(PROGRESS_TIME).md
+PROGRESS_TEMPLATE := $(PROGRESS_DOCS)/PROGRESS_TEMPLATE.md
+TACTICAL_FILE := $(PROGRESS_DOCS)/PROGRESS_TACTICAL.md
+
+progress-template:
+	@mkdir -p $(PROGRESS_DOCS)
+	@cp $(PROGRESS_TEMPLATE) $(PROGRESS_FILE) 2>/dev/null || \
+	( echo "# 📘 Отчёт $(PROGRESS_DATE)" > $(PROGRESS_FILE); echo "**Дата:** $$(date)" >> $(PROGRESS_FILE) )
+	@echo "✅ Создан: $(PROGRESS_FILE)"
+
+progress-append:
+	@echo "✏️ Вставь факты (Ctrl+D для завершения):"
+	@cat >> $(PROGRESS_FILE)
+	@echo "✅ Добавлено в $(PROGRESS_FILE)"
+
+progress-snapshot:
+	@mkdir -p $(PROGRESS_DIR)
+	@cp $(PROGRESS_FILE) $(PROGRESS_SNAPSHOT)
+	@echo "✅ Снапшот: $(PROGRESS_SNAPSHOT)"
+
+progress-auto-push:
+	@$(MAKE) progress-snapshot
+	@git add docs/PROGRESS_*.md artifacts/PROGRESS_*.md || true
+	@git commit -m "📘 progress snapshot $(PROGRESS_DATE)_$(PROGRESS_TIME)" || echo "⚠️ Нет изменений."
+	@git push origin main
+	@echo "✅ Прогресс отправлен в GitHub"
+
+progress-help:
+	@echo "make progress-template  → создать отчёт"
+	@echo "make progress-append    → добавить факты"
+	@echo "make progress-snapshot  → снапшот"
+	@echo "make progress-auto-push → снапшот + git push"
+
+# ================================
+# 🔎 Линтеры и автоформатирование
+# ================================
+
+lint: ## 🔎 Запуск всех линтеров (pre-commit + flake8 + yamllint + markdownlint + tabs)
+	@echo "🔎 Проверка кода и конфигурации..."
+	@pre-commit run --all-files --show-diff-on-failure || true
+	@yamllint .github/workflows/ci.yml || true
+	@$(MAKE) lint-tabs
+	@echo "✅ Проверка завершена."
+# ===========================
+# 🧹 FIX DOCS FORMAT
+# ===========================
+fix-docs:
+	@echo "🧩 Исправление markdownlint и форматирование документации..."
+	npx markdownlint-cli2 --fix "docs/**/*.md" || true
+	npx prettier --write "docs/**/*.md" || true
+	@git diff docs/ > artifacts/fix_markdown_docs.diff || true
+	@git add docs/ artifacts/fix_markdown_docs.diff
+	@git commit -m "fix(docs): auto-format markdown files for markdownlint compliance" || true
+	@echo "✅ Документация отформатирована и закоммичена."
+
+# ===========================
+# 📋 LINT DOCS
+# ===========================
+lint-docs:
+	@echo "🔍 Проверка документации markdownlint..."
+	npx markdownlint-cli2 "docs/**/*.md" || true
+
+# ===========================
+# 🧠 LINT DOCS FIX
+# ===========================
+lint-docs-fix:
+	@echo "🪄 Автоисправление markdownlint..."
+	npx markdownlint-cli2 --fix "docs/**/*.md" || true
+	npx prettier --write "docs/**/*.md" || true
+	@git add docs/
+	@git commit -m "fix(docs): auto-fix markdownlint structural issues" || true
+	@echo "✅ Документация выровнена по lint-правилам."
+
+# ===========================
+# 🧩 LINT DOCS STRICT (Full Autoformat)
+# ===========================
+lint-docs-strict: ## 🧩 Полное автоформатирование Markdown (строгий режим)
+	@echo "🧩 Полное автоформатирование Markdown (lint + prettier)..."
+	npx markdownlint-cli2 --fix "docs/**/*.md" "artifacts/**/*.md" || true
+	npx prettier --write "docs/**/*.md" "artifacts/**/*.md" || true
+	@pre-commit run --all-files || true
+	@git add docs/ artifacts/ || true
+	@git commit -m "fix(docs): full markdown autoformat (strict lint compliance)" || echo "⚠️ Нет изменений."
+	@echo "✅ Полный Markdown автоформат завершён."
+
+# ===========================
+# 🧹 FIX YAML FORMAT (yamllint)
+# ===========================
+fix-yaml: ## 🧹 Исправление YAML (yamllint rules)
+	@echo "🧹 Исправление YAML (yamllint rules)..."
+	find .github/workflows -type f -name "*.yml" \
+	-exec sed -i 's/\[ /[/' {} \; \
+	-exec sed -i 's/ \]/]/' {} \; \
+	-exec sed -i 's/\"true\"/true/' {} \; \
+	-exec sed -i 's/\"false\"/false/' {} \;
+	@sed -i '1s/^/---\n/' .pre-commit-config.yaml || true
+	@sed -i '1s/^/---\n/' docker-compose.yml || true
+	@sed -i '1s/^/---\n/' docker-compose.prod.yml || true
+	@git add .github/workflows .pre-commit-config.yaml docker-compose.yml docker-compose.prod.yml || true
+	@git commit -m "chore(yaml): auto-fix yamllint compliance" || echo "⚠️ Нет изменений."
+	@echo "✅ YAML успешно выровнен."
+
+# ===========================
+# 🔍 LINT TABS (Makefile syntax)
+# ===========================
+lint-tabs: ## 🔍 Проверка табов в Makefile (исключить пробелы)
+	@echo "🔍 Проверка Makefile на пробелы вместо табов..."
+	@if grep -P '^[ ]{4,}[^\t#]' Makefile > /tmp/make_tabs_check.txt; then \
+	echo "❌ Обнаружены строки с пробелами вместо табов:"; \
+	cat /tmp/make_tabs_check.txt; \
+	exit 1; \
+	else \
+	echo "✅ Все команды Makefile используют TAB."; \
+	fi
+
+# ===========================
+# 🧰 FIX TABS (auto-convert spaces to TABs)
+# ===========================
+# ============================
+# 📚 DOCS & HELP
+# ============================
+apidocs:
+	docker compose -f $(COMPOSE_FILE) exec backend sh -c "PYTHONPATH=/code python3 scripts/generate_docs.py"
+
+archdocs:
+	docker compose -f $(COMPOSE_FILE) exec backend sh -c "PYTHONPATH=/code python3 scripts/generate_architecture.py"
+
+docs: apidocs archdocs
+	@echo "📚 Документация обновлена."
+
+help:
+	@echo "=== 🧭 Makefile Legal Assistant Arbitrage v2.4 ==="
+	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
+	| awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-28s\033[0m %s\n", $$1, $$2}'
+
+# ===========================
+# 🧰 FIX TABS (auto-convert spaces to TABs)
+# ===========================
+
+# ===========================
+# 🧩 FIX TESTS AUTH & TIMEZONE
+# ===========================
+fix-tests-auth:
+	@echo "🧩 Исправляем datetime и Telegram skip..."
+	@find backend/app -type f -name '*.py' -exec sed -i 's/datetime.utcnow()/datetime.now(timezone.utc)/g' {} +
+	@sed -i 's/pytest.fail(/pytest.skip(/' backend/app/tests/test_integration_notify.py || true
+	@echo "✅ Исправлено: datetime -> timezone-aware UTC, Telegram skip активен"

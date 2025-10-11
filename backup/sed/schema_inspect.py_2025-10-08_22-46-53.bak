@@ -1,0 +1,57 @@
+from typing import Type, Any, Dict, get_origin, get_args
+from pydantic import BaseModel, EmailStr
+import logging
+
+logger = logging.getLogger("schema_inspect")
+logger.setLevel(logging.INFO)
+
+
+def autofill_payload(model: Type[BaseModel], payload: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Автоматически заполняет отсутствующие обязательные поля тестового payload
+    на основе схемы Pydantic.
+    """
+    updated = payload.copy()
+    missing_fields = []
+
+    for field_name, field in model.model_fields.items():
+        if field_name not in updated and field.is_required():
+            fake_value = _fake_value_for_type(field.annotation)
+            updated[field_name] = fake_value
+            missing_fields.append((field_name, fake_value))
+
+    if missing_fields:
+        logger.info(f"⚠️ Автодобавлены обязательные поля: {missing_fields}")
+
+    return updated
+
+
+def _fake_value_for_type(annotation):
+    """Создаёт простое тестовое значение по типу поля."""
+    origin = get_origin(annotation)
+    args = get_args(annotation)
+
+    # — EmailStr и его обёртки —
+    if annotation is EmailStr:
+        return "auto@example.com"
+    if any(a is EmailStr for a in args):
+        return "auto@example.com"
+    if "EmailStr" in str(annotation):
+        return "auto@example.com"
+
+    # — Базовые типы —
+    if annotation in (str,) or origin == str:
+        return "autofilled"
+    if annotation in (int,) or origin == int:
+        return 0
+    if annotation in (float,) or origin == float:
+        return 0.0
+    if annotation in (bool,) or origin == bool:
+        return True
+    if annotation in (list,) or origin == list:
+        return []
+    if annotation in (dict,) or origin == dict:
+        return {}
+
+    # — Fallback —
+    return "auto"

@@ -3,8 +3,9 @@ name: 💾 Daily DB Backup
 
 on:
   schedule:
-    - cron: "0 3 * * *"  # каждый день в 03:00 UTC
-  workflow_dispatch:      # запуск вручную из GitHub Actions
+    # каждый день в 03:00 UTC
+    - cron: "0 3 * * *"
+  workflow_dispatch: true  # ручной запуск из GitHub Actions
 
 jobs:
   backup:
@@ -53,7 +54,7 @@ jobs:
           name: db-backup-${{ github.run_id }}
           path: db_backup.sql
 
-      # Если захочешь в S3/MinIO:
+      # ☁️ Резервное копирование в S3 (если заданы секреты)
       - name: ☁️ Upload to S3
         if: ${{ secrets.AWS_ACCESS_KEY_ID != '' }}
         uses: jakejarvis/s3-sync-action@master

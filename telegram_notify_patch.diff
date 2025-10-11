@@ -1,0 +1,1061 @@
+diff --git a/Makefile b/Makefile
+index 9d7adc8..7afca50 100644
+--- a/Makefile
++++ b/Makefile
+@@ -487,18 +487,26 @@ test-ci-v33: ## 🚀 Запуск CI-тестов Postman (AutoAuth v3.3 Stable)
+ 			echo '❌ Ошибка во время тестов (см. artifacts/newman_report_v33.html)'; exit 1; }
+
+ # ==========================================
+-# 🚀 Unified CI Pipeline (test-ci-v3)
++# 🧪 CI v3.3 AutoAuth — Snapshot + Logging
+ # ==========================================
+ .PHONY: test-ci-v3
+
+-test-ci-v3: ## 🚀 Полный цикл: тесты + снапшот + push
++test-ci-v3: ## 🚀 Полный цикл: тесты + снапшот + push (+ лог в PROGRESS_TACTICAL.md)
+ 	@echo "🚀 Запуск полного CI цикла (pytest + Postman + снапшот + GitHub push)..."
+-	$(MAKE) test-ci-v33
+-	@echo "📸 Создаю снапшот прогресса..."
+-	$(MAKE) progress-snapshot
+-	@echo "📘 Фиксирую снапшот и пушу в GitHub..."
+-	$(MAKE) progress-auto-push
+-	@echo "✅ Полный CI цикл успешно завершён!"
++	@START_TIME=$$(date '+%Y-%m-%d %H:%M:%S'); \
++	$(MAKE) test-ci-v33 && STATUS="✅ Успешно" || STATUS="❌ Ошибка"; \
++	echo ""; \
++	echo "📸 Создаю снапшот прогресса..."; \
++	$(MAKE) progress-snapshot; \
++	echo ""; \
++	echo "🧾 Добавляю запись в docs/PROGRESS_TACTICAL.md..."; \
++	echo "" >> docs/PROGRESS_TACTICAL.md; \
++	echo "🧪 CI v3.3 — AutoAuth Stable $$STATUS" >> docs/PROGRESS_TACTICAL.md; \
++	echo "Дата: $$START_TIME" >> docs/PROGRESS_TACTICAL.md; \
++	echo "" >> docs/PROGRESS_TACTICAL.md; \
++	echo "📘 Фиксирую снапшот и пушу в GitHub..."; \
++	$(MAKE) progress-auto-push; \
++	echo "✅ Полный CI цикл успешно завершён!"
+
+ # =================================
+ # ---- KAD integration helpers ----
+diff --git a/add_devops_practice_guide.patch b/add_devops_practice_guide.patch
+index 20a76a8..67efedb 100644
+--- a/add_devops_practice_guide.patch
++++ b/add_devops_practice_guide.patch
+@@ -12,7 +12,7 @@ index 0000000..b7f9d21
+ +## 1. 🎯 Введение
+ +
+ +### Что такое DevOps
+-+**DevOps (Development + Operations)** — это культура и набор практик, объединяющих разработку, тестирование и эксплуатацию.
+++**DevOps (Development + Operations)** — это культура и набор практик, объединяющих разработку, тестирование и эксплуатацию.
+ +Главная цель: **ускорить поставку продукта без потери качества и стабильности**.
+ +
+ +> 🧩 DevOps — это не только инструменты, а единая система взаимодействия людей, процессов и технологий.
+diff --git a/artifacts/newman_report_v31.html b/artifacts/newman_report_v31.html
+index bdc8b9e..bed3e9d 100644
+--- a/artifacts/newman_report_v31.html
++++ b/artifacts/newman_report_v31.html
+@@ -61,26 +61,26 @@
+                             <div class="panel-heading" role="tab" id="requestHead-50ed6836-aa94-4285-886a-88aed5be7d86">
+                                 <h4 class="panel-title"><a data-toggle="collapse" data-parent="#accordion" href="#requestData-50ed6836-aa94-4285-886a-88aed5be7d86" aria-controls="collapseOne">Register User</a></h4>
+                             </div>
+-
++
+                             <div id="requestData-50ed6836-aa94-4285-886a-88aed5be7d86" class="panel-collapse collapse in" role="tabpanel" aria-labelledby="requestHead-50ed6836-aa94-4285-886a-88aed5be7d86">
+                                 <div class="panel-body">
+-
++
+                                         <div class="col-md-4">Method</div><div class="col-md-8">POST</div>
+                                         <div class="col-md-4">URL</div><div class="col-md-8"><a href="http://82.165.144.150:8080/api/auth/login" target="_blank">http://82.165.144.150:8080/api/auth/login</a></div>
+-
++
+                                     <div class="col-md-12">&nbsp;</div>
+-
++
+                                     <div class="col-md-12">&nbsp;</div>
+                                     <div class="col-md-4">Mean time per request</div><div class="col-md-8">0ms</div><br/>
+                                     <div class="col-md-4">Mean size per request</div><div class="col-md-8">0B</div><br/>
+-
++
+                                     <div class="col-md-12">&nbsp;</div>
+                                     <br/><div class="col-md-4">Total passed tests</div><div class="col-md-8"></div>
+                                     <div class="col-md-4">Total failed tests</div><div class="col-md-8"></div><br/>
+-
++
+                                     <div class="col-md-12">&nbsp;</div>
+                                     <br/><div class="col-md-4">Status code</div><div class="col-md-8">200</div><br/>
+-
++
+                                 </div>
+                             </div>
+                         </div>
+@@ -90,29 +90,29 @@
+                             <div class="panel-heading" role="tab" id="requestHead-076b15de-c858-48e6-9a3c-e54052648543">
+                                 <h4 class="panel-title"><a data-toggle="collapse" data-parent="#accordion" href="#requestData-076b15de-c858-48e6-9a3c-e54052648543" aria-controls="collapseOne">Get Current User</a></h4>
+                             </div>
+-
++
+                             <div id="requestData-076b15de-c858-48e6-9a3c-e54052648543" class="panel-collapse collapse in" role="tabpanel" aria-labelledby="requestHead-076b15de-c858-48e6-9a3c-e54052648543">
+                                 <div class="panel-body">
+-
++
+                                         <div class="col-md-4">Method</div><div class="col-md-8">GET</div>
+                                         <div class="col-md-4">URL</div><div class="col-md-8"><a href="http://82.165.144.150:8080/api/auth/me" target="_blank">http://82.165.144.150:8080/api/auth/me</a></div>
+-
++
+                                     <div class="col-md-12">&nbsp;</div>
+-
++
+                                     <div class="col-md-12">&nbsp;</div>
+                                     <div class="col-md-4">Mean time per request</div><div class="col-md-8">6ms</div><br/>
+                                     <div class="col-md-4">Mean size per request</div><div class="col-md-8">130B</div><br/>
+-
++
+                                     <div class="col-md-12">&nbsp;</div>
+                                     <br/><div class="col-md-4">Total passed tests</div><div class="col-md-8">1</div>
+                                     <div class="col-md-4">Total failed tests</div><div class="col-md-8">0</div><br/>
+-
++
+                                     <div class="col-md-12">&nbsp;</div>
+                                     <br/><div class="col-md-4">Status code</div><div class="col-md-8">200</div><br/>
+-
++
+                                         <div class="col-md-12">&nbsp;</div>
+                                         <div class="col-md-4">Tests</div>
+-
++
+                                         <div class="col-md-8">
+                                             <table class="table table-responsive table-condensed">
+                                                 <thead><tr><th>Name</th><th>Pass count</th><th>Fail count</th></tr></thead>
+@@ -136,29 +136,29 @@
+                             <div class="panel-heading" role="tab" id="requestHead-1c237e18-9138-4f06-afcb-65b6262df65a">
+                                 <h4 class="panel-title"><a data-toggle="collapse" data-parent="#accordion" href="#requestData-1c237e18-9138-4f06-afcb-65b6262df65a" aria-controls="collapseOne">Create Law</a></h4>
+                             </div>
+-
++
+                             <div id="requestData-1c237e18-9138-4f06-afcb-65b6262df65a" class="panel-collapse collapse in" role="tabpanel" aria-labelledby="requestHead-1c237e18-9138-4f06-afcb-65b6262df65a">
+                                 <div class="panel-body">
+-
++
+                                         <div class="col-md-4">Method</div><div class="col-md-8">POST</div>
+                                         <div class="col-md-4">URL</div><div class="col-md-8"><a href="http://82.165.144.150:8080/api/laws/" target="_blank">http://82.165.144.150:8080/api/laws/</a></div>
+-
++
+                                     <div class="col-md-12">&nbsp;</div>
+-
++
+                                     <div class="col-md-12">&nbsp;</div>
+                                     <div class="col-md-4">Mean time per request</div><div class="col-md-8">6ms</div><br/>
+                                     <div class="col-md-4">Mean size per request</div><div class="col-md-8">166B</div><br/>
+-
++
+                                     <div class="col-md-12">&nbsp;</div>
+                                     <br/><div class="col-md-4">Total passed tests</div><div class="col-md-8">1</div>
+                                     <div class="col-md-4">Total failed tests</div><div class="col-md-8">0</div><br/>
+-
++
+                                     <div class="col-md-12">&nbsp;</div>
+                                     <br/><div class="col-md-4">Status code</div><div class="col-md-8">201</div><br/>
+-
++
+                                         <div class="col-md-12">&nbsp;</div>
+                                         <div class="col-md-4">Tests</div>
+-
++
+                                         <div class="col-md-8">
+                                             <table class="table table-responsive table-condensed">
+                                                 <thead><tr><th>Name</th><th>Pass count</th><th>Fail count</th></tr></thead>
+@@ -182,29 +182,29 @@
+                             <div class="panel-heading" role="tab" id="requestHead-a68f64ac-02fe-42e3-b4dc-addf9eb48896">
+                                 <h4 class="panel-title"><a data-toggle="collapse" data-parent="#accordion" href="#requestData-a68f64ac-02fe-42e3-b4dc-addf9eb48896" aria-controls="collapseOne">Create Decision</a></h4>
+                             </div>
+-
++
+                             <div id="requestData-a68f64ac-02fe-42e3-b4dc-addf9eb48896" class="panel-collapse collapse in" role="tabpanel" aria-labelledby="requestHead-a68f64ac-02fe-42e3-b4dc-addf9eb48896">
+                                 <div class="panel-body">
+-
++
+                                         <div class="col-md-4">Method</div><div class="col-md-8">POST</div>
+                                         <div class="col-md-4">URL</div><div class="col-md-8"><a href="http://82.165.144.150:8080/api/decisions/" target="_blank">http://82.165.144.150:8080/api/decisions/</a></div>
+-
++
+                                     <div class="col-md-12">&nbsp;</div>
+-
++
+                                     <div class="col-md-12">&nbsp;</div>
+                                     <div class="col-md-4">Mean time per request</div><div class="col-md-8">4ms</div><br/>
+                                     <div class="col-md-4">Mean size per request</div><div class="col-md-8">270B</div><br/>
+-
++
+                                     <div class="col-md-12">&nbsp;</div>
+                                     <br/><div class="col-md-4">Total passed tests</div><div class="col-md-8">0</div>
+                                     <div class="col-md-4">Total failed tests</div><div class="col-md-8">1</div><br/>
+-
++
+                                     <div class="col-md-12">&nbsp;</div>
+                                     <br/><div class="col-md-4">Status code</div><div class="col-md-8">422</div><br/>
+-
++
+                                         <div class="col-md-12">&nbsp;</div>
+                                         <div class="col-md-4">Tests</div>
+-
++
+                                         <div class="col-md-8">
+                                             <table class="table table-responsive table-condensed">
+                                                 <thead><tr><th>Name</th><th>Pass count</th><th>Fail count</th></tr></thead>
+@@ -220,29 +220,29 @@
+                             <div class="panel-heading" role="tab" id="requestHead-12c1684e-9cbf-4c16-bf86-ed1f1bfd3414">
+                                 <h4 class="panel-title"><a data-toggle="collapse" data-parent="#accordion" href="#requestData-12c1684e-9cbf-4c16-bf86-ed1f1bfd3414" aria-controls="collapseOne">Delete Decision</a></h4>
+                             </div>
+-
++
+                             <div id="requestData-12c1684e-9cbf-4c16-bf86-ed1f1bfd3414" class="panel-collapse collapse in" role="tabpanel" aria-labelledby="requestHead-12c1684e-9cbf-4c16-bf86-ed1f1bfd3414">
+                                 <div class="panel-body">
+-
++
+                                         <div class="col-md-4">Method</div><div class="col-md-8">DELETE</div>
+                                         <div class="col-md-4">URL</div><div class="col-md-8"><a href="http://82.165.144.150:8080/api/decisions/null" target="_blank">http://82.165.144.150:8080/api/decisions/null</a></div>
+-
++
+                                     <div class="col-md-12">&nbsp;</div>
+-
++
+                                     <div class="col-md-12">&nbsp;</div>
+                                     <div class="col-md-4">Mean time per request</div><div class="col-md-8">3ms</div><br/>
+                                     <div class="col-md-4">Mean size per request</div><div class="col-md-8">157B</div><br/>
+-
++
+                                     <div class="col-md-12">&nbsp;</div>
+                                     <br/><div class="col-md-4">Total passed tests</div><div class="col-md-8">0</div>
+                                     <div class="col-md-4">Total failed tests</div><div class="col-md-8">1</div><br/>
+-
++
+                                     <div class="col-md-12">&nbsp;</div>
+                                     <br/><div class="col-md-4">Status code</div><div class="col-md-8">422</div><br/>
+-
++
+                                         <div class="col-md-12">&nbsp;</div>
+                                         <div class="col-md-4">Tests</div>
+-
++
+                                         <div class="col-md-8">
+                                             <table class="table table-responsive table-condensed">
+                                                 <thead><tr><th>Name</th><th>Pass count</th><th>Fail count</th></tr></thead>
+@@ -266,29 +266,29 @@
+                             <div class="panel-heading" role="tab" id="requestHead-dff30c39-462b-4464-ac79-c90b9e257623">
+                                 <h4 class="panel-title"><a data-toggle="collapse" data-parent="#accordion" href="#requestData-dff30c39-462b-4464-ac79-c90b9e257623" aria-controls="collapseOne">Delete Law (Cleanup)</a></h4>
+                             </div>
+-
++
+                             <div id="requestData-dff30c39-462b-4464-ac79-c90b9e257623" class="panel-collapse collapse in" role="tabpanel" aria-labelledby="requestHead-dff30c39-462b-4464-ac79-c90b9e257623">
+                                 <div class="panel-body">
+-
++
+                                         <div class="col-md-4">Method</div><div class="col-md-8">DELETE</div>
+                                         <div class="col-md-4">URL</div><div class="col-md-8"><a href="http://82.165.144.150:8080/api/laws/22" target="_blank">http://82.165.144.150:8080/api/laws/22</a></div>
+-
++
+                                     <div class="col-md-12">&nbsp;</div>
+-
++
+                                     <div class="col-md-12">&nbsp;</div>
+                                     <div class="col-md-4">Mean time per request</div><div class="col-md-8">7ms</div><br/>
+                                     <div class="col-md-4">Mean size per request</div><div class="col-md-8">0B</div><br/>
+-
++
+                                     <div class="col-md-12">&nbsp;</div>
+                                     <br/><div class="col-md-4">Total passed tests</div><div class="col-md-8">1</div>
+                                     <div class="col-md-4">Total failed tests</div><div class="col-md-8">0</div><br/>
+-
++
+                                     <div class="col-md-12">&nbsp;</div>
+                                     <br/><div class="col-md-4">Status code</div><div class="col-md-8">204</div><br/>
+-
++
+                                         <div class="col-md-12">&nbsp;</div>
+                                         <div class="col-md-4">Tests</div>
+-
++
+                                         <div class="col-md-8">
+                                             <table class="table table-responsive table-condensed">
+                                                 <thead><tr><th>Name</th><th>Pass count</th><th>Fail count</th></tr></thead>
+@@ -304,29 +304,29 @@
+                             <div class="panel-heading" role="tab" id="requestHead-417186f6-3eee-4c3a-b29c-9d4b5030307e">
+                                 <h4 class="panel-title"><a data-toggle="collapse" data-parent="#accordion" href="#requestData-417186f6-3eee-4c3a-b29c-9d4b5030307e" aria-controls="collapseOne">Verify DB Cleanup</a></h4>
+                             </div>
+-
++
+                             <div id="requestData-417186f6-3eee-4c3a-b29c-9d4b5030307e" class="panel-collapse collapse in" role="tabpanel" aria-labelledby="requestHead-417186f6-3eee-4c3a-b29c-9d4b5030307e">
+                                 <div class="panel-body">
+-
++
+                                         <div class="col-md-4">Method</div><div class="col-md-8">GET</div>
+                                         <div class="col-md-4">URL</div><div class="col-md-8"><a href="http://82.165.144.150:8080/api/laws/" target="_blank">http://82.165.144.150:8080/api/laws/</a></div>
+-
++
+                                     <div class="col-md-12">&nbsp;</div>
+-
++
+                                     <div class="col-md-12">&nbsp;</div>
+                                     <div class="col-md-4">Mean time per request</div><div class="col-md-8">6ms</div><br/>
+                                     <div class="col-md-4">Mean size per request</div><div class="col-md-8">846B</div><br/>
+-
++
+                                     <div class="col-md-12">&nbsp;</div>
+                                     <br/><div class="col-md-4">Total passed tests</div><div class="col-md-8">1</div>
+                                     <div class="col-md-4">Total failed tests</div><div class="col-md-8">0</div><br/>
+-
++
+                                     <div class="col-md-12">&nbsp;</div>
+                                     <br/><div class="col-md-4">Status code</div><div class="col-md-8">200</div><br/>
+-
++
+                                         <div class="col-md-12">&nbsp;</div>
+                                         <div class="col-md-4">Tests</div>
+-
++
+                                         <div class="col-md-8">
+                                             <table class="table table-responsive table-condensed">
+                                                 <thead><tr><th>Name</th><th>Pass count</th><th>Fail count</th></tr></thead>
+@@ -350,29 +350,29 @@
+                             <div class="panel-heading" role="tab" id="requestHead-9178165e-be26-4a0a-99a5-2ab6b9183207">
+                                 <h4 class="panel-title"><a data-toggle="collapse" data-parent="#accordion" href="#requestData-9178165e-be26-4a0a-99a5-2ab6b9183207" aria-controls="collapseOne">Health Check</a></h4>
+                             </div>
+-
++
+                             <div id="requestData-9178165e-be26-4a0a-99a5-2ab6b9183207" class="panel-collapse collapse in" role="tabpanel" aria-labelledby="requestHead-9178165e-be26-4a0a-99a5-2ab6b9183207">
+                                 <div class="panel-body">
+-
++
+                                         <div class="col-md-4">Method</div><div class="col-md-8">GET</div>
+                                         <div class="col-md-4">URL</div><div class="col-md-8"><a href="http://82.165.144.150:8080/api/health" target="_blank">http://82.165.144.150:8080/api/health</a></div>
+-
++
+                                     <div class="col-md-12">&nbsp;</div>
+-
++
+                                     <div class="col-md-12">&nbsp;</div>
+                                     <div class="col-md-4">Mean time per request</div><div class="col-md-8">3ms</div><br/>
+                                     <div class="col-md-4">Mean size per request</div><div class="col-md-8">15B</div><br/>
+-
++
+                                     <div class="col-md-12">&nbsp;</div>
+                                     <br/><div class="col-md-4">Total passed tests</div><div class="col-md-8">1</div>
+                                     <div class="col-md-4">Total failed tests</div><div class="col-md-8">0</div><br/>
+-
++
+                                     <div class="col-md-12">&nbsp;</div>
+                                     <br/><div class="col-md-4">Status code</div><div class="col-md-8">200</div><br/>
+-
++
+                                         <div class="col-md-12">&nbsp;</div>
+                                         <div class="col-md-4">Tests</div>
+-
++
+                                         <div class="col-md-8">
+                                             <table class="table table-responsive table-condensed">
+                                                 <thead><tr><th>Name</th><th>Pass count</th><th>Fail count</th></tr></thead>
+@@ -437,4 +437,3 @@
+   </div>
+ </body>
+ </html>
+-
+diff --git a/artifacts/newman_report_v32.html b/artifacts/newman_report_v32.html
+index 1c87cc0..f461613 100644
+--- a/artifacts/newman_report_v32.html
++++ b/artifacts/newman_report_v32.html
+@@ -61,26 +61,26 @@
+                             <div class="panel-heading" role="tab" id="requestHead-b94eaa1f-7529-459e-9035-463b176b16fc">
+                                 <h4 class="panel-title"><a data-toggle="collapse" data-parent="#accordion" href="#requestData-b94eaa1f-7529-459e-9035-463b176b16fc" aria-controls="collapseOne">Register User</a></h4>
+                             </div>
+-
++
+                             <div id="requestData-b94eaa1f-7529-459e-9035-463b176b16fc" class="panel-collapse collapse in" role="tabpanel" aria-labelledby="requestHead-b94eaa1f-7529-459e-9035-463b176b16fc">
+                                 <div class="panel-body">
+-
++
+                                         <div class="col-md-4">Method</div><div class="col-md-8">POST</div>
+                                         <div class="col-md-4">URL</div><div class="col-md-8"><a href="http://82.165.144.150:8080/api/auth/login" target="_blank">http://82.165.144.150:8080/api/auth/login</a></div>
+-
++
+                                     <div class="col-md-12">&nbsp;</div>
+-
++
+                                     <div class="col-md-12">&nbsp;</div>
+                                     <div class="col-md-4">Mean time per request</div><div class="col-md-8">0ms</div><br/>
+                                     <div class="col-md-4">Mean size per request</div><div class="col-md-8">0B</div><br/>
+-
++
+                                     <div class="col-md-12">&nbsp;</div>
+                                     <br/><div class="col-md-4">Total passed tests</div><div class="col-md-8"></div>
+                                     <div class="col-md-4">Total failed tests</div><div class="col-md-8"></div><br/>
+-
++
+                                     <div class="col-md-12">&nbsp;</div>
+                                     <br/><div class="col-md-4">Status code</div><div class="col-md-8">200</div><br/>
+-
++
+                                 </div>
+                             </div>
+                         </div>
+@@ -90,29 +90,29 @@
+                             <div class="panel-heading" role="tab" id="requestHead-d5d00276-2391-485a-8da2-70710f7a071d">
+                                 <h4 class="panel-title"><a data-toggle="collapse" data-parent="#accordion" href="#requestData-d5d00276-2391-485a-8da2-70710f7a071d" aria-controls="collapseOne">Get Current User</a></h4>
+                             </div>
+-
++
+                             <div id="requestData-d5d00276-2391-485a-8da2-70710f7a071d" class="panel-collapse collapse in" role="tabpanel" aria-labelledby="requestHead-d5d00276-2391-485a-8da2-70710f7a071d">
+                                 <div class="panel-body">
+-
++
+                                         <div class="col-md-4">Method</div><div class="col-md-8">GET</div>
+                                         <div class="col-md-4">URL</div><div class="col-md-8"><a href="http://82.165.144.150:8080/api/auth/me" target="_blank">http://82.165.144.150:8080/api/auth/me</a></div>
+-
++
+                                     <div class="col-md-12">&nbsp;</div>
+-
++
+                                     <div class="col-md-12">&nbsp;</div>
+                                     <div class="col-md-4">Mean time per request</div><div class="col-md-8">8ms</div><br/>
+                                     <div class="col-md-4">Mean size per request</div><div class="col-md-8">128B</div><br/>
+-
++
+                                     <div class="col-md-12">&nbsp;</div>
+                                     <br/><div class="col-md-4">Total passed tests</div><div class="col-md-8">1</div>
+                                     <div class="col-md-4">Total failed tests</div><div class="col-md-8">0</div><br/>
+-
++
+                                     <div class="col-md-12">&nbsp;</div>
+                                     <br/><div class="col-md-4">Status code</div><div class="col-md-8">200</div><br/>
+-
++
+                                         <div class="col-md-12">&nbsp;</div>
+                                         <div class="col-md-4">Tests</div>
+-
++
+                                         <div class="col-md-8">
+                                             <table class="table table-responsive table-condensed">
+                                                 <thead><tr><th>Name</th><th>Pass count</th><th>Fail count</th></tr></thead>
+@@ -136,29 +136,29 @@
+                             <div class="panel-heading" role="tab" id="requestHead-8c8b080e-0574-4088-85d0-70692dc80080">
+                                 <h4 class="panel-title"><a data-toggle="collapse" data-parent="#accordion" href="#requestData-8c8b080e-0574-4088-85d0-70692dc80080" aria-controls="collapseOne">Create Law</a></h4>
+                             </div>
+-
++
+                             <div id="requestData-8c8b080e-0574-4088-85d0-70692dc80080" class="panel-collapse collapse in" role="tabpanel" aria-labelledby="requestHead-8c8b080e-0574-4088-85d0-70692dc80080">
+                                 <div class="panel-body">
+-
++
+                                         <div class="col-md-4">Method</div><div class="col-md-8">POST</div>
+                                         <div class="col-md-4">URL</div><div class="col-md-8"><a href="http://82.165.144.150:8080/api/laws/" target="_blank">http://82.165.144.150:8080/api/laws/</a></div>
+-
++
+                                     <div class="col-md-12">&nbsp;</div>
+-
++
+                                     <div class="col-md-12">&nbsp;</div>
+                                     <div class="col-md-4">Mean time per request</div><div class="col-md-8">10ms</div><br/>
+                                     <div class="col-md-4">Mean size per request</div><div class="col-md-8">166B</div><br/>
+-
++
+                                     <div class="col-md-12">&nbsp;</div>
+                                     <br/><div class="col-md-4">Total passed tests</div><div class="col-md-8">1</div>
+                                     <div class="col-md-4">Total failed tests</div><div class="col-md-8">0</div><br/>
+-
++
+                                     <div class="col-md-12">&nbsp;</div>
+                                     <br/><div class="col-md-4">Status code</div><div class="col-md-8">201</div><br/>
+-
++
+                                         <div class="col-md-12">&nbsp;</div>
+                                         <div class="col-md-4">Tests</div>
+-
++
+                                         <div class="col-md-8">
+                                             <table class="table table-responsive table-condensed">
+                                                 <thead><tr><th>Name</th><th>Pass count</th><th>Fail count</th></tr></thead>
+@@ -182,29 +182,29 @@
+                             <div class="panel-heading" role="tab" id="requestHead-4544d297-7ce6-4982-be9a-94e27cf36c85">
+                                 <h4 class="panel-title"><a data-toggle="collapse" data-parent="#accordion" href="#requestData-4544d297-7ce6-4982-be9a-94e27cf36c85" aria-controls="collapseOne">Create Decision</a></h4>
+                             </div>
+-
++
+                             <div id="requestData-4544d297-7ce6-4982-be9a-94e27cf36c85" class="panel-collapse collapse in" role="tabpanel" aria-labelledby="requestHead-4544d297-7ce6-4982-be9a-94e27cf36c85">
+                                 <div class="panel-body">
+-
++
+                                         <div class="col-md-4">Method</div><div class="col-md-8">POST</div>
+                                         <div class="col-md-4">URL</div><div class="col-md-8"><a href="http://82.165.144.150:8080/api/decisions/" target="_blank">http://82.165.144.150:8080/api/decisions/</a></div>
+-
++
+                                     <div class="col-md-12">&nbsp;</div>
+-
++
+                                     <div class="col-md-12">&nbsp;</div>
+                                     <div class="col-md-4">Mean time per request</div><div class="col-md-8">6ms</div><br/>
+                                     <div class="col-md-4">Mean size per request</div><div class="col-md-8">97B</div><br/>
+-
++
+                                     <div class="col-md-12">&nbsp;</div>
+                                     <br/><div class="col-md-4">Total passed tests</div><div class="col-md-8">0</div>
+                                     <div class="col-md-4">Total failed tests</div><div class="col-md-8">1</div><br/>
+-
++
+                                     <div class="col-md-12">&nbsp;</div>
+                                     <br/><div class="col-md-4">Status code</div><div class="col-md-8">400</div><br/>
+-
++
+                                         <div class="col-md-12">&nbsp;</div>
+                                         <div class="col-md-4">Tests</div>
+-
++
+                                         <div class="col-md-8">
+                                             <table class="table table-responsive table-condensed">
+                                                 <thead><tr><th>Name</th><th>Pass count</th><th>Fail count</th></tr></thead>
+@@ -220,29 +220,29 @@
+                             <div class="panel-heading" role="tab" id="requestHead-7187b84e-5829-4577-bc5c-b5f1675f6639">
+                                 <h4 class="panel-title"><a data-toggle="collapse" data-parent="#accordion" href="#requestData-7187b84e-5829-4577-bc5c-b5f1675f6639" aria-controls="collapseOne">Delete Decision</a></h4>
+                             </div>
+-
++
+                             <div id="requestData-7187b84e-5829-4577-bc5c-b5f1675f6639" class="panel-collapse collapse in" role="tabpanel" aria-labelledby="requestHead-7187b84e-5829-4577-bc5c-b5f1675f6639">
+                                 <div class="panel-body">
+-
++
+                                         <div class="col-md-4">Method</div><div class="col-md-8">DELETE</div>
+                                         <div class="col-md-4">URL</div><div class="col-md-8"><a href="http://82.165.144.150:8080/api/decisions/" target="_blank">http://82.165.144.150:8080/api/decisions/</a></div>
+-
++
+                                     <div class="col-md-12">&nbsp;</div>
+-
++
+                                     <div class="col-md-12">&nbsp;</div>
+                                     <div class="col-md-4">Mean time per request</div><div class="col-md-8">4ms</div><br/>
+                                     <div class="col-md-4">Mean size per request</div><div class="col-md-8">31B</div><br/>
+-
++
+                                     <div class="col-md-12">&nbsp;</div>
+                                     <br/><div class="col-md-4">Total passed tests</div><div class="col-md-8">0</div>
+                                     <div class="col-md-4">Total failed tests</div><div class="col-md-8">1</div><br/>
+-
++
+                                     <div class="col-md-12">&nbsp;</div>
+                                     <br/><div class="col-md-4">Status code</div><div class="col-md-8">405</div><br/>
+-
++
+                                         <div class="col-md-12">&nbsp;</div>
+                                         <div class="col-md-4">Tests</div>
+-
++
+                                         <div class="col-md-8">
+                                             <table class="table table-responsive table-condensed">
+                                                 <thead><tr><th>Name</th><th>Pass count</th><th>Fail count</th></tr></thead>
+@@ -266,29 +266,29 @@
+                             <div class="panel-heading" role="tab" id="requestHead-29d31a90-146e-41c7-9034-0993d0e4ffcb">
+                                 <h4 class="panel-title"><a data-toggle="collapse" data-parent="#accordion" href="#requestData-29d31a90-146e-41c7-9034-0993d0e4ffcb" aria-controls="collapseOne">Delete Law (Cleanup)</a></h4>
+                             </div>
+-
++
+                             <div id="requestData-29d31a90-146e-41c7-9034-0993d0e4ffcb" class="panel-collapse collapse in" role="tabpanel" aria-labelledby="requestHead-29d31a90-146e-41c7-9034-0993d0e4ffcb">
+                                 <div class="panel-body">
+-
++
+                                         <div class="col-md-4">Method</div><div class="col-md-8">DELETE</div>
+                                         <div class="col-md-4">URL</div><div class="col-md-8"><a href="http://82.165.144.150:8080/api/laws/23" target="_blank">http://82.165.144.150:8080/api/laws/23</a></div>
+-
++
+                                     <div class="col-md-12">&nbsp;</div>
+-
++
+                                     <div class="col-md-12">&nbsp;</div>
+                                     <div class="col-md-4">Mean time per request</div><div class="col-md-8">20ms</div><br/>
+                                     <div class="col-md-4">Mean size per request</div><div class="col-md-8">0B</div><br/>
+-
++
+                                     <div class="col-md-12">&nbsp;</div>
+                                     <br/><div class="col-md-4">Total passed tests</div><div class="col-md-8">1</div>
+                                     <div class="col-md-4">Total failed tests</div><div class="col-md-8">0</div><br/>
+-
++
+                                     <div class="col-md-12">&nbsp;</div>
+                                     <br/><div class="col-md-4">Status code</div><div class="col-md-8">204</div><br/>
+-
++
+                                         <div class="col-md-12">&nbsp;</div>
+                                         <div class="col-md-4">Tests</div>
+-
++
+                                         <div class="col-md-8">
+                                             <table class="table table-responsive table-condensed">
+                                                 <thead><tr><th>Name</th><th>Pass count</th><th>Fail count</th></tr></thead>
+@@ -304,29 +304,29 @@
+                             <div class="panel-heading" role="tab" id="requestHead-c969f48a-cddf-4c3e-83eb-7314a28e65ec">
+                                 <h4 class="panel-title"><a data-toggle="collapse" data-parent="#accordion" href="#requestData-c969f48a-cddf-4c3e-83eb-7314a28e65ec" aria-controls="collapseOne">Verify DB Cleanup</a></h4>
+                             </div>
+-
++
+                             <div id="requestData-c969f48a-cddf-4c3e-83eb-7314a28e65ec" class="panel-collapse collapse in" role="tabpanel" aria-labelledby="requestHead-c969f48a-cddf-4c3e-83eb-7314a28e65ec">
+                                 <div class="panel-body">
+-
++
+                                         <div class="col-md-4">Method</div><div class="col-md-8">GET</div>
+                                         <div class="col-md-4">URL</div><div class="col-md-8"><a href="http://82.165.144.150:8080/api/laws/" target="_blank">http://82.165.144.150:8080/api/laws/</a></div>
+-
++
+                                     <div class="col-md-12">&nbsp;</div>
+-
++
+                                     <div class="col-md-12">&nbsp;</div>
+                                     <div class="col-md-4">Mean time per request</div><div class="col-md-8">12ms</div><br/>
+                                     <div class="col-md-4">Mean size per request</div><div class="col-md-8">846B</div><br/>
+-
++
+                                     <div class="col-md-12">&nbsp;</div>
+                                     <br/><div class="col-md-4">Total passed tests</div><div class="col-md-8">1</div>
+                                     <div class="col-md-4">Total failed tests</div><div class="col-md-8">0</div><br/>
+-
++
+                                     <div class="col-md-12">&nbsp;</div>
+                                     <br/><div class="col-md-4">Status code</div><div class="col-md-8">200</div><br/>
+-
++
+                                         <div class="col-md-12">&nbsp;</div>
+                                         <div class="col-md-4">Tests</div>
+-
++
+                                         <div class="col-md-8">
+                                             <table class="table table-responsive table-condensed">
+                                                 <thead><tr><th>Name</th><th>Pass count</th><th>Fail count</th></tr></thead>
+@@ -350,29 +350,29 @@
+                             <div class="panel-heading" role="tab" id="requestHead-f38d833d-3dcd-4c4a-8969-c1d51a43c82a">
+                                 <h4 class="panel-title"><a data-toggle="collapse" data-parent="#accordion" href="#requestData-f38d833d-3dcd-4c4a-8969-c1d51a43c82a" aria-controls="collapseOne">Health Check</a></h4>
+                             </div>
+-
++
+                             <div id="requestData-f38d833d-3dcd-4c4a-8969-c1d51a43c82a" class="panel-collapse collapse in" role="tabpanel" aria-labelledby="requestHead-f38d833d-3dcd-4c4a-8969-c1d51a43c82a">
+                                 <div class="panel-body">
+-
++
+                                         <div class="col-md-4">Method</div><div class="col-md-8">GET</div>
+                                         <div class="col-md-4">URL</div><div class="col-md-8"><a href="http://82.165.144.150:8080/api/health" target="_blank">http://82.165.144.150:8080/api/health</a></div>
+-
++
+                                     <div class="col-md-12">&nbsp;</div>
+-
++
+                                     <div class="col-md-12">&nbsp;</div>
+                                     <div class="col-md-4">Mean time per request</div><div class="col-md-8">4ms</div><br/>
+                                     <div class="col-md-4">Mean size per request</div><div class="col-md-8">15B</div><br/>
+-
++
+                                     <div class="col-md-12">&nbsp;</div>
+                                     <br/><div class="col-md-4">Total passed tests</div><div class="col-md-8">1</div>
+                                     <div class="col-md-4">Total failed tests</div><div class="col-md-8">0</div><br/>
+-
++
+                                     <div class="col-md-12">&nbsp;</div>
+                                     <br/><div class="col-md-4">Status code</div><div class="col-md-8">200</div><br/>
+-
++
+                                         <div class="col-md-12">&nbsp;</div>
+                                         <div class="col-md-4">Tests</div>
+-
++
+                                         <div class="col-md-8">
+                                             <table class="table table-responsive table-condensed">
+                                                 <thead><tr><th>Name</th><th>Pass count</th><th>Fail count</th></tr></thead>
+@@ -437,4 +437,3 @@
+   </div>
+ </body>
+ </html>
+-
+diff --git a/artifacts/newman_report_v33.html b/artifacts/newman_report_v33.html
+index 86dc187..1dc9cd9 100644
+--- a/artifacts/newman_report_v33.html
++++ b/artifacts/newman_report_v33.html
+@@ -30,7 +30,7 @@
+         <div class="col-md-3">Description</div><div class="col-md-9">Финальная версия CI коллекции для автоматического тестирования Legal Assistant Arbitrage API.
+ Полностью автономна — AutoAuth, CRUD Laws/Decisions, Cleanup и Health Check.
+ Исправлены ошибки: уникальный case_number, безопасное удаление decision_id и устранение конфликтов переменных.&nbsp;</div>
+-        <div class="col-md-3">Time</div><div class="col-md-9">Wed Oct 08 2025 23:27:48 GMT+0000 (Coordinated Universal Time)</div>
++        <div class="col-md-3">Time</div><div class="col-md-9">Thu Oct 09 2025 17:16:46 GMT+0000 (Coordinated Universal Time)</div>
+         <div class="col-md-3">Exported with</div><div class="col-md-9">Newman v6.2.1</div>
+         <div class="col-md-12">&nbsp;</div>
+         <div class="col-md-4">&nbsp;</div><div class="col-md-4"><strong>Total</strong></div><div class="col-md-4"><strong>Failed</strong></div>
+@@ -42,9 +42,9 @@
+           <div class="col-md-4">Assertions</div><div class="col-md-4">7</div><div class="col-md-4">0</div>
+
+         <div class="col-md-12">&nbsp;</div>
+-        <div class="col-md-6">Total run duration</div><div class="col-md-6">1197ms</div>
++        <div class="col-md-6">Total run duration</div><div class="col-md-6">1032ms</div>
+         <div class="col-md-6">Total data received</div><div class="col-md-6">1.95KB (approx)</div>
+-        <div class="col-md-6">Average response time</div><div class="col-md-6">107ms</div>
++        <div class="col-md-6">Average response time</div><div class="col-md-6">87ms</div>
+
+         <div class="col-md-12">&nbsp;</div>
+         <div class="col-md-3"><strong>Total Failures</strong></div><div class="col-md-6"><strong>0</strong></div>
+@@ -52,19 +52,19 @@
+
+     <br/><h4>Requests</h4>
+
+-        <div class="panel-group" id="collapse-folder-e7c26eec-31e5-4a7f-b047-7a7acba2e57b" role="tablist" aria-multiselectable="true">
+-            <div role="tab" id="folderHead-e7c26eec-31e5-4a7f-b047-7a7acba2e57b">
+-                <h4 style="font-size: 18px;" class="panel-title"><a data-toggle="collapse" data-parent="#accordion" href="#folderData-e7c26eec-31e5-4a7f-b047-7a7acba2e57b" aria-controls="collapseOne"><strong>AUTH — AutoAuth</strong></a></h4>
++        <div class="panel-group" id="collapse-folder-8400348c-728d-418f-bb29-d0ee3ce9220e" role="tablist" aria-multiselectable="true">
++            <div role="tab" id="folderHead-8400348c-728d-418f-bb29-d0ee3ce9220e">
++                <h4 style="font-size: 18px;" class="panel-title"><a data-toggle="collapse" data-parent="#accordion" href="#folderData-8400348c-728d-418f-bb29-d0ee3ce9220e" aria-controls="collapseOne"><strong>AUTH — AutoAuth</strong></a></h4>
+             </div>
+             <br/>
+-            <div id="folderData-e7c26eec-31e5-4a7f-b047-7a7acba2e57b" class="panel-collapse collapse in" role="tabpanel" aria-labelledby="folderHead-e7c26eec-31e5-4a7f-b047-7a7acba2e57b">
+-                    <div class="panel-group" id="collapse-request-365dc169-3513-4031-9856-ac893636a61e" role="tablist" aria-multiselectable="true">
++            <div id="folderData-8400348c-728d-418f-bb29-d0ee3ce9220e" class="panel-collapse collapse in" role="tabpanel" aria-labelledby="folderHead-8400348c-728d-418f-bb29-d0ee3ce9220e">
++                    <div class="panel-group" id="collapse-request-ede890d0-25ab-4b81-82cc-80016b88159d" role="tablist" aria-multiselectable="true">
+                         <div class="panel panel-default">
+-                            <div class="panel-heading" role="tab" id="requestHead-365dc169-3513-4031-9856-ac893636a61e">
+-                                <h4 class="panel-title"><a data-toggle="collapse" data-parent="#accordion" href="#requestData-365dc169-3513-4031-9856-ac893636a61e" aria-controls="collapseOne">Register User</a></h4>
++                            <div class="panel-heading" role="tab" id="requestHead-ede890d0-25ab-4b81-82cc-80016b88159d">
++                                <h4 class="panel-title"><a data-toggle="collapse" data-parent="#accordion" href="#requestData-ede890d0-25ab-4b81-82cc-80016b88159d" aria-controls="collapseOne">Register User</a></h4>
+                             </div>
+
+-                            <div id="requestData-365dc169-3513-4031-9856-ac893636a61e" class="panel-collapse collapse in" role="tabpanel" aria-labelledby="requestHead-365dc169-3513-4031-9856-ac893636a61e">
++                            <div id="requestData-ede890d0-25ab-4b81-82cc-80016b88159d" class="panel-collapse collapse in" role="tabpanel" aria-labelledby="requestHead-ede890d0-25ab-4b81-82cc-80016b88159d">
+                                 <div class="panel-body">
+
+                                         <div class="col-md-4">Method</div><div class="col-md-8">POST</div>
+@@ -87,13 +87,13 @@
+                             </div>
+                         </div>
+                     </div>
+-                    <div class="panel-group" id="collapse-request-32d85c7d-9ef9-4f42-8db8-211a471e1c45" role="tablist" aria-multiselectable="true">
++                    <div class="panel-group" id="collapse-request-fff14b22-85a8-4c9e-864c-dfc553863a5a" role="tablist" aria-multiselectable="true">
+                         <div class="panel panel-default">
+-                            <div class="panel-heading" role="tab" id="requestHead-32d85c7d-9ef9-4f42-8db8-211a471e1c45">
+-                                <h4 class="panel-title"><a data-toggle="collapse" data-parent="#accordion" href="#requestData-32d85c7d-9ef9-4f42-8db8-211a471e1c45" aria-controls="collapseOne">Get Current User</a></h4>
++                            <div class="panel-heading" role="tab" id="requestHead-fff14b22-85a8-4c9e-864c-dfc553863a5a">
++                                <h4 class="panel-title"><a data-toggle="collapse" data-parent="#accordion" href="#requestData-fff14b22-85a8-4c9e-864c-dfc553863a5a" aria-controls="collapseOne">Get Current User</a></h4>
+                             </div>
+
+-                            <div id="requestData-32d85c7d-9ef9-4f42-8db8-211a471e1c45" class="panel-collapse collapse in" role="tabpanel" aria-labelledby="requestHead-32d85c7d-9ef9-4f42-8db8-211a471e1c45">
++                            <div id="requestData-fff14b22-85a8-4c9e-864c-dfc553863a5a" class="panel-collapse collapse in" role="tabpanel" aria-labelledby="requestHead-fff14b22-85a8-4c9e-864c-dfc553863a5a">
+                                 <div class="panel-body">
+
+                                         <div class="col-md-4">Method</div><div class="col-md-8">GET</div>
+@@ -127,19 +127,19 @@
+                     </div>
+             </div>
+         </div>
+-        <div class="panel-group" id="collapse-folder-869cdc55-1b50-4642-95ee-586dc7abcd86" role="tablist" aria-multiselectable="true">
+-            <div role="tab" id="folderHead-869cdc55-1b50-4642-95ee-586dc7abcd86">
+-                <h4 style="font-size: 18px;" class="panel-title"><a data-toggle="collapse" data-parent="#accordion" href="#folderData-869cdc55-1b50-4642-95ee-586dc7abcd86" aria-controls="collapseOne"><strong>LAWS (CRUD)</strong></a></h4>
++        <div class="panel-group" id="collapse-folder-b379a4cf-e4ff-4ffa-8980-4b0ad019e81f" role="tablist" aria-multiselectable="true">
++            <div role="tab" id="folderHead-b379a4cf-e4ff-4ffa-8980-4b0ad019e81f">
++                <h4 style="font-size: 18px;" class="panel-title"><a data-toggle="collapse" data-parent="#accordion" href="#folderData-b379a4cf-e4ff-4ffa-8980-4b0ad019e81f" aria-controls="collapseOne"><strong>LAWS (CRUD)</strong></a></h4>
+             </div>
+             <br/>
+-            <div id="folderData-869cdc55-1b50-4642-95ee-586dc7abcd86" class="panel-collapse collapse in" role="tabpanel" aria-labelledby="folderHead-869cdc55-1b50-4642-95ee-586dc7abcd86">
+-                    <div class="panel-group" id="collapse-request-f860b214-c873-4b37-9da8-b7e6e71d01fd" role="tablist" aria-multiselectable="true">
++            <div id="folderData-b379a4cf-e4ff-4ffa-8980-4b0ad019e81f" class="panel-collapse collapse in" role="tabpanel" aria-labelledby="folderHead-b379a4cf-e4ff-4ffa-8980-4b0ad019e81f">
++                    <div class="panel-group" id="collapse-request-b5f4669c-9e08-49ad-9572-9a0668af1d72" role="tablist" aria-multiselectable="true">
+                         <div class="panel panel-default">
+-                            <div class="panel-heading" role="tab" id="requestHead-f860b214-c873-4b37-9da8-b7e6e71d01fd">
+-                                <h4 class="panel-title"><a data-toggle="collapse" data-parent="#accordion" href="#requestData-f860b214-c873-4b37-9da8-b7e6e71d01fd" aria-controls="collapseOne">Create Law</a></h4>
++                            <div class="panel-heading" role="tab" id="requestHead-b5f4669c-9e08-49ad-9572-9a0668af1d72">
++                                <h4 class="panel-title"><a data-toggle="collapse" data-parent="#accordion" href="#requestData-b5f4669c-9e08-49ad-9572-9a0668af1d72" aria-controls="collapseOne">Create Law</a></h4>
+                             </div>
+
+-                            <div id="requestData-f860b214-c873-4b37-9da8-b7e6e71d01fd" class="panel-collapse collapse in" role="tabpanel" aria-labelledby="requestHead-f860b214-c873-4b37-9da8-b7e6e71d01fd">
++                            <div id="requestData-b5f4669c-9e08-49ad-9572-9a0668af1d72" class="panel-collapse collapse in" role="tabpanel" aria-labelledby="requestHead-b5f4669c-9e08-49ad-9572-9a0668af1d72">
+                                 <div class="panel-body">
+
+                                         <div class="col-md-4">Method</div><div class="col-md-8">POST</div>
+@@ -148,7 +148,7 @@
+                                     <div class="col-md-12">&nbsp;</div>
+
+                                     <div class="col-md-12">&nbsp;</div>
+-                                    <div class="col-md-4">Mean time per request</div><div class="col-md-8">9ms</div><br/>
++                                    <div class="col-md-4">Mean time per request</div><div class="col-md-8">8ms</div><br/>
+                                     <div class="col-md-4">Mean size per request</div><div class="col-md-8">166B</div><br/>
+
+                                     <div class="col-md-12">&nbsp;</div>
+@@ -173,19 +173,19 @@
+                     </div>
+             </div>
+         </div>
+-        <div class="panel-group" id="collapse-folder-7837a93e-d673-43f9-bb1d-9a2064bea75a" role="tablist" aria-multiselectable="true">
+-            <div role="tab" id="folderHead-7837a93e-d673-43f9-bb1d-9a2064bea75a">
+-                <h4 style="font-size: 18px;" class="panel-title"><a data-toggle="collapse" data-parent="#accordion" href="#folderData-7837a93e-d673-43f9-bb1d-9a2064bea75a" aria-controls="collapseOne"><strong>DECISIONS (Fixed v3.3)</strong></a></h4>
++        <div class="panel-group" id="collapse-folder-338a9c06-f07d-4e46-a83e-e6795c4beef8" role="tablist" aria-multiselectable="true">
++            <div role="tab" id="folderHead-338a9c06-f07d-4e46-a83e-e6795c4beef8">
++                <h4 style="font-size: 18px;" class="panel-title"><a data-toggle="collapse" data-parent="#accordion" href="#folderData-338a9c06-f07d-4e46-a83e-e6795c4beef8" aria-controls="collapseOne"><strong>DECISIONS (Fixed v3.3)</strong></a></h4>
+             </div>
+             <br/>
+-            <div id="folderData-7837a93e-d673-43f9-bb1d-9a2064bea75a" class="panel-collapse collapse in" role="tabpanel" aria-labelledby="folderHead-7837a93e-d673-43f9-bb1d-9a2064bea75a">
+-                    <div class="panel-group" id="collapse-request-3ead336a-f1a7-4fcd-8a11-cd56d0cf782d" role="tablist" aria-multiselectable="true">
++            <div id="folderData-338a9c06-f07d-4e46-a83e-e6795c4beef8" class="panel-collapse collapse in" role="tabpanel" aria-labelledby="folderHead-338a9c06-f07d-4e46-a83e-e6795c4beef8">
++                    <div class="panel-group" id="collapse-request-682731dd-e0b9-4b05-9aa9-5ea4bf1e6fe8" role="tablist" aria-multiselectable="true">
+                         <div class="panel panel-default">
+-                            <div class="panel-heading" role="tab" id="requestHead-3ead336a-f1a7-4fcd-8a11-cd56d0cf782d">
+-                                <h4 class="panel-title"><a data-toggle="collapse" data-parent="#accordion" href="#requestData-3ead336a-f1a7-4fcd-8a11-cd56d0cf782d" aria-controls="collapseOne">Create Decision</a></h4>
++                            <div class="panel-heading" role="tab" id="requestHead-682731dd-e0b9-4b05-9aa9-5ea4bf1e6fe8">
++                                <h4 class="panel-title"><a data-toggle="collapse" data-parent="#accordion" href="#requestData-682731dd-e0b9-4b05-9aa9-5ea4bf1e6fe8" aria-controls="collapseOne">Create Decision</a></h4>
+                             </div>
+
+-                            <div id="requestData-3ead336a-f1a7-4fcd-8a11-cd56d0cf782d" class="panel-collapse collapse in" role="tabpanel" aria-labelledby="requestHead-3ead336a-f1a7-4fcd-8a11-cd56d0cf782d">
++                            <div id="requestData-682731dd-e0b9-4b05-9aa9-5ea4bf1e6fe8" class="panel-collapse collapse in" role="tabpanel" aria-labelledby="requestHead-682731dd-e0b9-4b05-9aa9-5ea4bf1e6fe8">
+                                 <div class="panel-body">
+
+                                         <div class="col-md-4">Method</div><div class="col-md-8">POST</div>
+@@ -217,17 +217,17 @@
+                             </div>
+                         </div>
+                     </div>
+-                    <div class="panel-group" id="collapse-request-02b84dc3-4051-4a13-8560-7f6c82ba8d44" role="tablist" aria-multiselectable="true">
++                    <div class="panel-group" id="collapse-request-19c7ecef-3354-49d5-aa98-1cd689246edd" role="tablist" aria-multiselectable="true">
+                         <div class="panel panel-default">
+-                            <div class="panel-heading" role="tab" id="requestHead-02b84dc3-4051-4a13-8560-7f6c82ba8d44">
+-                                <h4 class="panel-title"><a data-toggle="collapse" data-parent="#accordion" href="#requestData-02b84dc3-4051-4a13-8560-7f6c82ba8d44" aria-controls="collapseOne">Delete Decision</a></h4>
++                            <div class="panel-heading" role="tab" id="requestHead-19c7ecef-3354-49d5-aa98-1cd689246edd">
++                                <h4 class="panel-title"><a data-toggle="collapse" data-parent="#accordion" href="#requestData-19c7ecef-3354-49d5-aa98-1cd689246edd" aria-controls="collapseOne">Delete Decision</a></h4>
+                             </div>
+
+-                            <div id="requestData-02b84dc3-4051-4a13-8560-7f6c82ba8d44" class="panel-collapse collapse in" role="tabpanel" aria-labelledby="requestHead-02b84dc3-4051-4a13-8560-7f6c82ba8d44">
++                            <div id="requestData-19c7ecef-3354-49d5-aa98-1cd689246edd" class="panel-collapse collapse in" role="tabpanel" aria-labelledby="requestHead-19c7ecef-3354-49d5-aa98-1cd689246edd">
+                                 <div class="panel-body">
+
+                                         <div class="col-md-4">Method</div><div class="col-md-8">DELETE</div>
+-                                        <div class="col-md-4">URL</div><div class="col-md-8"><a href="http://82.165.144.150:8080/api/decisions/30" target="_blank">http://82.165.144.150:8080/api/decisions/30</a></div>
++                                        <div class="col-md-4">URL</div><div class="col-md-8"><a href="http://82.165.144.150:8080/api/decisions/32" target="_blank">http://82.165.144.150:8080/api/decisions/32</a></div>
+
+                                     <div class="col-md-12">&nbsp;</div>
+
+@@ -257,23 +257,23 @@
+                     </div>
+             </div>
+         </div>
+-        <div class="panel-group" id="collapse-folder-169e2b7a-a97f-499a-bf11-189d0183e14b" role="tablist" aria-multiselectable="true">
+-            <div role="tab" id="folderHead-169e2b7a-a97f-499a-bf11-189d0183e14b">
+-                <h4 style="font-size: 18px;" class="panel-title"><a data-toggle="collapse" data-parent="#accordion" href="#folderData-169e2b7a-a97f-499a-bf11-189d0183e14b" aria-controls="collapseOne"><strong>CLEANUP</strong></a></h4>
++        <div class="panel-group" id="collapse-folder-31342531-0e79-4ea7-a76f-688483755cf3" role="tablist" aria-multiselectable="true">
++            <div role="tab" id="folderHead-31342531-0e79-4ea7-a76f-688483755cf3">
++                <h4 style="font-size: 18px;" class="panel-title"><a data-toggle="collapse" data-parent="#accordion" href="#folderData-31342531-0e79-4ea7-a76f-688483755cf3" aria-controls="collapseOne"><strong>CLEANUP</strong></a></h4>
+             </div>
+             <br/>
+-            <div id="folderData-169e2b7a-a97f-499a-bf11-189d0183e14b" class="panel-collapse collapse in" role="tabpanel" aria-labelledby="folderHead-169e2b7a-a97f-499a-bf11-189d0183e14b">
+-                    <div class="panel-group" id="collapse-request-a9f57f00-e021-470e-92c0-69801c5316ae" role="tablist" aria-multiselectable="true">
++            <div id="folderData-31342531-0e79-4ea7-a76f-688483755cf3" class="panel-collapse collapse in" role="tabpanel" aria-labelledby="folderHead-31342531-0e79-4ea7-a76f-688483755cf3">
++                    <div class="panel-group" id="collapse-request-b95baf86-2c0f-46e0-887f-176fab93fed1" role="tablist" aria-multiselectable="true">
+                         <div class="panel panel-default">
+-                            <div class="panel-heading" role="tab" id="requestHead-a9f57f00-e021-470e-92c0-69801c5316ae">
+-                                <h4 class="panel-title"><a data-toggle="collapse" data-parent="#accordion" href="#requestData-a9f57f00-e021-470e-92c0-69801c5316ae" aria-controls="collapseOne">Delete Law (Cleanup)</a></h4>
++                            <div class="panel-heading" role="tab" id="requestHead-b95baf86-2c0f-46e0-887f-176fab93fed1">
++                                <h4 class="panel-title"><a data-toggle="collapse" data-parent="#accordion" href="#requestData-b95baf86-2c0f-46e0-887f-176fab93fed1" aria-controls="collapseOne">Delete Law (Cleanup)</a></h4>
+                             </div>
+
+-                            <div id="requestData-a9f57f00-e021-470e-92c0-69801c5316ae" class="panel-collapse collapse in" role="tabpanel" aria-labelledby="requestHead-a9f57f00-e021-470e-92c0-69801c5316ae">
++                            <div id="requestData-b95baf86-2c0f-46e0-887f-176fab93fed1" class="panel-collapse collapse in" role="tabpanel" aria-labelledby="requestHead-b95baf86-2c0f-46e0-887f-176fab93fed1">
+                                 <div class="panel-body">
+
+                                         <div class="col-md-4">Method</div><div class="col-md-8">DELETE</div>
+-                                        <div class="col-md-4">URL</div><div class="col-md-8"><a href="http://82.165.144.150:8080/api/laws/28" target="_blank">http://82.165.144.150:8080/api/laws/28</a></div>
++                                        <div class="col-md-4">URL</div><div class="col-md-8"><a href="http://82.165.144.150:8080/api/laws/30" target="_blank">http://82.165.144.150:8080/api/laws/30</a></div>
+
+                                     <div class="col-md-12">&nbsp;</div>
+
+@@ -301,13 +301,13 @@
+                             </div>
+                         </div>
+                     </div>
+-                    <div class="panel-group" id="collapse-request-15c4a0fb-306c-43ea-9bdc-dd891724a233" role="tablist" aria-multiselectable="true">
++                    <div class="panel-group" id="collapse-request-bc308981-252a-415e-a877-63d1a19a01fb" role="tablist" aria-multiselectable="true">
+                         <div class="panel panel-default">
+-                            <div class="panel-heading" role="tab" id="requestHead-15c4a0fb-306c-43ea-9bdc-dd891724a233">
+-                                <h4 class="panel-title"><a data-toggle="collapse" data-parent="#accordion" href="#requestData-15c4a0fb-306c-43ea-9bdc-dd891724a233" aria-controls="collapseOne">Verify DB Cleanup</a></h4>
++                            <div class="panel-heading" role="tab" id="requestHead-bc308981-252a-415e-a877-63d1a19a01fb">
++                                <h4 class="panel-title"><a data-toggle="collapse" data-parent="#accordion" href="#requestData-bc308981-252a-415e-a877-63d1a19a01fb" aria-controls="collapseOne">Verify DB Cleanup</a></h4>
+                             </div>
+
+-                            <div id="requestData-15c4a0fb-306c-43ea-9bdc-dd891724a233" class="panel-collapse collapse in" role="tabpanel" aria-labelledby="requestHead-15c4a0fb-306c-43ea-9bdc-dd891724a233">
++                            <div id="requestData-bc308981-252a-415e-a877-63d1a19a01fb" class="panel-collapse collapse in" role="tabpanel" aria-labelledby="requestHead-bc308981-252a-415e-a877-63d1a19a01fb">
+                                 <div class="panel-body">
+
+                                         <div class="col-md-4">Method</div><div class="col-md-8">GET</div>
+@@ -316,7 +316,7 @@
+                                     <div class="col-md-12">&nbsp;</div>
+
+                                     <div class="col-md-12">&nbsp;</div>
+-                                    <div class="col-md-4">Mean time per request</div><div class="col-md-8">5ms</div><br/>
++                                    <div class="col-md-4">Mean time per request</div><div class="col-md-8">6ms</div><br/>
+                                     <div class="col-md-4">Mean size per request</div><div class="col-md-8">1013B</div><br/>
+
+                                     <div class="col-md-12">&nbsp;</div>
+@@ -341,19 +341,19 @@
+                     </div>
+             </div>
+         </div>
+-        <div class="panel-group" id="collapse-folder-a03fd9f1-e6a9-4ad8-90e3-ab62458ea0f9" role="tablist" aria-multiselectable="true">
+-            <div role="tab" id="folderHead-a03fd9f1-e6a9-4ad8-90e3-ab62458ea0f9">
+-                <h4 style="font-size: 18px;" class="panel-title"><a data-toggle="collapse" data-parent="#accordion" href="#folderData-a03fd9f1-e6a9-4ad8-90e3-ab62458ea0f9" aria-controls="collapseOne"><strong>HEALTH</strong></a></h4>
++        <div class="panel-group" id="collapse-folder-3ce950dc-68f0-45c7-adad-48d05233b94a" role="tablist" aria-multiselectable="true">
++            <div role="tab" id="folderHead-3ce950dc-68f0-45c7-adad-48d05233b94a">
++                <h4 style="font-size: 18px;" class="panel-title"><a data-toggle="collapse" data-parent="#accordion" href="#folderData-3ce950dc-68f0-45c7-adad-48d05233b94a" aria-controls="collapseOne"><strong>HEALTH</strong></a></h4>
+             </div>
+             <br/>
+-            <div id="folderData-a03fd9f1-e6a9-4ad8-90e3-ab62458ea0f9" class="panel-collapse collapse in" role="tabpanel" aria-labelledby="folderHead-a03fd9f1-e6a9-4ad8-90e3-ab62458ea0f9">
+-                    <div class="panel-group" id="collapse-request-0011bb96-d496-4ae8-badd-161162cec411" role="tablist" aria-multiselectable="true">
++            <div id="folderData-3ce950dc-68f0-45c7-adad-48d05233b94a" class="panel-collapse collapse in" role="tabpanel" aria-labelledby="folderHead-3ce950dc-68f0-45c7-adad-48d05233b94a">
++                    <div class="panel-group" id="collapse-request-97c4e838-29c7-406c-8381-d6f635842cfe" role="tablist" aria-multiselectable="true">
+                         <div class="panel panel-default">
+-                            <div class="panel-heading" role="tab" id="requestHead-0011bb96-d496-4ae8-badd-161162cec411">
+-                                <h4 class="panel-title"><a data-toggle="collapse" data-parent="#accordion" href="#requestData-0011bb96-d496-4ae8-badd-161162cec411" aria-controls="collapseOne">Health Check</a></h4>
++                            <div class="panel-heading" role="tab" id="requestHead-97c4e838-29c7-406c-8381-d6f635842cfe">
++                                <h4 class="panel-title"><a data-toggle="collapse" data-parent="#accordion" href="#requestData-97c4e838-29c7-406c-8381-d6f635842cfe" aria-controls="collapseOne">Health Check</a></h4>
+                             </div>
+
+-                            <div id="requestData-0011bb96-d496-4ae8-badd-161162cec411" class="panel-collapse collapse in" role="tabpanel" aria-labelledby="requestHead-0011bb96-d496-4ae8-badd-161162cec411">
++                            <div id="requestData-97c4e838-29c7-406c-8381-d6f635842cfe" class="panel-collapse collapse in" role="tabpanel" aria-labelledby="requestHead-97c4e838-29c7-406c-8381-d6f635842cfe">
+                                 <div class="panel-body">
+
+                                         <div class="col-md-4">Method</div><div class="col-md-8">GET</div>
+@@ -362,7 +362,7 @@
+                                     <div class="col-md-12">&nbsp;</div>
+
+                                     <div class="col-md-12">&nbsp;</div>
+-                                    <div class="col-md-4">Mean time per request</div><div class="col-md-8">328ms</div><br/>
++                                    <div class="col-md-4">Mean time per request</div><div class="col-md-8">141ms</div><br/>
+                                     <div class="col-md-4">Mean size per request</div><div class="col-md-8">49B</div><br/>
+
+                                     <div class="col-md-12">&nbsp;</div>
+diff --git a/backend/app/routes/kad.py b/backend/app/routes/kad.py
+index 5bef38e..890aeb5 100644
+--- a/backend/app/routes/kad.py
++++ b/backend/app/routes/kad.py
+@@ -1,11 +1,15 @@
+ from fastapi import APIRouter, HTTPException, Query
++
+ from backend.app.integrations.kad_api import KadAPI, KadError
+ from backend.app.services.kad_service import check_kad_health
+
+ router = APIRouter()
+
++
+ @router.get("/search", tags=["kad"])
+-async def kad_search(q: str = Query(..., min_length=2, description="Текст или номер дела для поиска")):
++async def kad_search(
++    q: str = Query(..., min_length=2, description="Текст или номер дела для поиска")
++):
+     """
+     🔍 Поиск арбитражных дел через KAD API.
+     """
+diff --git a/backend/app/services/kad_service.py b/backend/app/services/kad_service.py
+index a592a36..fc271d8 100644
+--- a/backend/app/services/kad_service.py
++++ b/backend/app/services/kad_service.py
+@@ -1,9 +1,12 @@
+ """
+ Сервисный слой для интеграции с kad.arbitr.ru
+ """
++
+ import httpx
++
+ from backend.app.integrations.kad_api import KadConfig
+
++
+ async def check_kad_health() -> dict:
+     """
+     Проверяет доступность сайта kad.arbitr.ru (HTTP HEAD-запрос)
+diff --git a/backend/app/tests/utils/schema_inspect.py b/backend/app/tests/utils/schema_inspect.py
+index b9b28ca..ffac110 100644
+--- a/backend/app/tests/utils/schema_inspect.py
++++ b/backend/app/tests/utils/schema_inspect.py
+@@ -1,6 +1,7 @@
+-from typing import Type, Any, Dict, get_origin, get_args
+-from pydantic import BaseModel, EmailStr
+ import logging
++from typing import Any, Dict, Type, get_args, get_origin
++
++from pydantic import BaseModel, EmailStr
+
+ logger = logging.getLogger("schema_inspect")
+ logger.setLevel(logging.INFO)
+diff --git a/docs/Makefile-CI_Docs b/docs/Makefile-CI_Docs
+index 693dda3..bd8c1bf 100644
+--- a/docs/Makefile-CI_Docs
++++ b/docs/Makefile-CI_Docs
+@@ -53,10 +53,10 @@ make progress-template
+ Я сгенерирую готовый блок Markdown:
+
+ ```markdown
+-**Дата:** 2025-10-09
+-**Контекст:** обновление интеграции pravo.gov.ru
+-✅ Добавлен модуль pravo_gov.py
+-⚙️ Расширен healthcheck
++**Дата:** 2025-10-09
++**Контекст:** обновление интеграции pravo.gov.ru
++✅ Добавлен модуль pravo_gov.py
++⚙️ Расширен healthcheck
+ 🧩 CI pipeline успешно прошёл
+ ```
+
+diff --git a/docs/PROGRESS_TACTICAL.md b/docs/PROGRESS_TACTICAL.md
+index 745735d..aab6d38 100644
+--- a/docs/PROGRESS_TACTICAL.md
++++ b/docs/PROGRESS_TACTICAL.md
+@@ -93,3 +93,7 @@ run-docker-safe
+
+ 📅 **Фиксация:** 2025-10-08
+ 📘 **Передано в стратегический поток (v2.4)**
++
++🧪 CI v3.3 — AutoAuth Stable ✅ Успешно
++Дата: 2025-10-09 17:16:19
++
+diff --git a/docs/ROADMAP_v2.4.md b/docs/ROADMAP_v2.4.md
+index 928a1ab..53fd3e6 100644
+--- a/docs/ROADMAP_v2.4.md
++++ b/docs/ROADMAP_v2.4.md
+@@ -1,10 +1,10 @@
+ # 🚀 Legal Assistant Arbitrage v2.4 — Стратегический план и KPI
+
+-**Период:** 2025-10-09 → 2025-10-22
+-**Цель релиза:** интеграция внешних источников законодательства и судебной практики, Telegram-интеграция и усиление CI/CD
+-**Ответственный:** admin@legal-assistant
++**Период:** 2025-10-09 → 2025-10-22
++**Цель релиза:** интеграция внешних источников законодательства и судебной практики, Telegram-интеграция и усиление CI/CD
++**Ответственный:** admin@legal-assistant
+ **Версия:** v2.4 (Integration Expansion)
+
+ ---
+
+-## ✅ Базовая точка (
+\ No newline at end of file
++## ✅ Базовая точка (
+diff --git a/logs/sed_auto_log.csv b/logs/sed_auto_log.csv
+index dbdec69..cf0ff71 100644
+--- a/logs/sed_auto_log.csv
++++ b/logs/sed_auto_log.csv
+@@ -1,14 +1,14 @@
+ pattern,replace,file,timestamp
+-INFO,INFO,backend/app/__pycache__/main.cpython-312.pyc,2025-10-08_22-46-53
+-INFO,INFO,backend/app/main.py,2025-10-08_22-46-53
+-INFO,INFO,backend/app/tests/utils/schema_inspect.py,2025-10-08_22-46-53
+-INFO,INFO,Makefile,2025-10-08_22-46-53
+-INFO,INFO,scripts/sed_auto_rules.txt,2025-10-08_22-46-53
+-api.legal.local,api.legal.local,backend/app/env.py,2025-10-08_22-46-53
+-api.legal.local,api.legal.local,Makefile,2025-10-08_22-46-53
+-api.legal.local,api.legal.local,scripts/sed_auto_rules.txt,2025-10-08_22-46-53
+-v2.4,v2.4,Makefile,2025-10-08_22-46-53
+-v2.4,v2.4,scripts/sed_auto_rules.txt,2025-10-08_22-46-53
+-"apitest","apitest",backend/app/tests/test_auth.py,2025-10-08_22-46-53
+-"apitest","apitest",scripts/test_auth.sh,2025-10-08_22-46-53
+-"apitest","apitest",scripts/sed_auto_rules.txt,2025-10-08_22-46-53
++INFO,INFO,backend/app/__pycache__/main.cpython-312.pyc,2025-10-09_17-18-28
++INFO,INFO,backend/app/main.py,2025-10-09_17-18-28
++INFO,INFO,backend/app/tests/utils/schema_inspect.py,2025-10-09_17-18-28
++INFO,INFO,Makefile,2025-10-09_17-18-28
++INFO,INFO,scripts/sed_auto_rules.txt,2025-10-09_17-18-28
++api.legal.local,api.legal.local,backend/app/env.py,2025-10-09_17-18-28
++api.legal.local,api.legal.local,Makefile,2025-10-09_17-18-28
++api.legal.local,api.legal.local,scripts/sed_auto_rules.txt,2025-10-09_17-18-28
++v2.4,v2.4,Makefile,2025-10-09_17-18-28
++v2.4,v2.4,scripts/sed_auto_rules.txt,2025-10-09_17-18-28
++"apitest","apitest",backend/app/tests/test_auth.py,2025-10-09_17-18-28
++"apitest","apitest",scripts/test_auth.sh,2025-10-09_17-18-28
++"apitest","apitest",scripts/sed_auto_rules.txt,2025-10-09_17-18-28
