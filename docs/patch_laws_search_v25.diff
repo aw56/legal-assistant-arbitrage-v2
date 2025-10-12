@@ -1,0 +1,99 @@
+diff --git a/backend/app/services/integrations_service.py b/backend/app/services/integrations_service.py
+new file mode 100644
+index 0000000..a3211f7
+--- /dev/null
++++ b/backend/app/services/integrations_service.py
+@@
++"""
++LegalAggregatorService — объединяет все внешние источники права (Legal Data Hub).
++Stage 2 — Legal Data Expansion (v2.5)
++"""
++
++from backend.app.integrations import (
++    RGIntegration,
++    SudVestnikIntegration,
++    # PravoIntegration,
++    # KADIntegration,
++)
++
++
++class LegalAggregatorService:
++    """Агрегатор правовых источников (KAD, pravo.gov.ru, RG, Судебный вестник и др.)."""
++
++    def __init__(self):
++        self.providers = [
++            RGIntegration(),
++            SudVestnikIntegration(),
++            # PravoIntegration(),
++            # KADIntegration(),
++        ]
++
++    async def aggregate(self, query: str):
++        """Выполняет поиск по всем активным источникам и возвращает объединённые результаты."""
++        results = []
++        for provider in self.providers:
++            try:
++                data = await provider.search(query)
++                results.extend(data)
++            except Exception as e:
++                print(f"⚠️ Ошибка {provider.source}: {e}")
++        # Убираем дубликаты по URL
++        unique = {item["url"]: item for item in results}.values()
++        return sorted(unique, key=lambda x: x["date"], reverse=True)
++
++
+diff --git a/backend/app/routes/laws_search.py b/backend/app/routes/laws_search.py
+new file mode 100644
+index 0000000..b2a54d9
+--- /dev/null
++++ b/backend/app/routes/laws_search.py
+@@
++"""
++API эндпоинт для агрегированного поиска по правовым источникам.
++GET /api/laws/search?q=...
++"""
++
++from fastapi import APIRouter, Query
++
++from backend.app.services.integrations_service import LegalAggregatorService
++
++router = APIRouter(prefix="/api/laws", tags=["laws"])
++aggregator = LegalAggregatorService()
++
++
++@router.get("/search")
++async def search_laws(q: str = Query(..., description="Поисковый запрос по источникам права")):
++    """
++    Выполняет поиск правовых актов и судебной практики по множеству источников:
++    - Российская газета (официальные публикации)
++    - Судебный вестник (обзоры ВС)
++    - право.gov.ru / data.gov.ru (при активации)
++    - KAD (арбитражные дела)
++    """
++    results = await aggregator.aggregate(q)
++    return {
++        "query": q,
++        "count": len(results),
++        "results": results,
++    }
++
++
+diff --git a/backend/app/main.py b/backend/app/main.py
+index 4d29b56..21b5f94 100644
+--- a/backend/app/main.py
++++ b/backend/app/main.py
+@@
+ from fastapi import FastAPI
+
+ app = FastAPI(title="Legal Assistant Arbitrage API")
++
++# === Импортируем маршруты ===
++from backend.app.routes import laws_search
++
++# === Регистрация маршрутов ===
++app.include_router(laws_search.router)
++
++@app.get("/api/health")
++async def health():
++    """Проверка доступности API."""
++    return {"status": "ok", "version": "v2.5"}

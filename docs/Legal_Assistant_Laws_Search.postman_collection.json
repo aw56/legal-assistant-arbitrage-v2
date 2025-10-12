@@ -1,0 +1,103 @@
+{
+  "info": {
+    "name": "Legal Assistant Arbitrage — /api/laws/search",
+    "description": "Проверка агрегации правовых источников (KAD, pravo.gov.ru, RG, Судебный вестник)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_postman_id": "c7a8a111-4f0b-45b1-b51e-9e12e6cf9982"
+  },
+  "item": [
+    {
+      "name": "✅ Positive — базовый поиск (count > 0)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "const json = pm.response.json();",
+              "pm.test('Response has query and results', function () {",
+              "    pm.expect(json).to.have.property('query');",
+              "    pm.expect(json).to.have.property('results');",
+              "    pm.expect(json).to.have.property('count');",
+              "});",
+              "",
+              "pm.test('Results not empty', function () {",
+              "    pm.expect(json.count).to.be.above(0);",
+              "    pm.expect(json.results[0]).to.have.property('title');",
+              "    pm.expect(json.results[0]).to.have.property('url');",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/api/laws/search?q=арбитраж",
+          "host": ["{{base_url}}"],
+          "path": ["api", "laws", "search"],
+          "query": [{ "key": "q", "value": "арбитраж" }]
+        }
+      }
+    },
+    {
+      "name": "🧩 Negative — пустой результат (count == 0)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "const json = pm.response.json();",
+              "pm.test('Response structure ok', function () {",
+              "    pm.expect(json).to.have.property('query');",
+              "    pm.expect(json).to.have.property('results');",
+              "    pm.expect(json).to.have.property('count');",
+              "});",
+              "",
+              "pm.test('Count is 0', function () {",
+              "    pm.expect(json.count).to.eql(0);",
+              "    pm.expect(json.results.length).to.eql(0);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/api/laws/search?q=ничего",
+          "host": ["{{base_url}}"],
+          "path": ["api", "laws", "search"],
+          "query": [{ "key": "q", "value": "ничего" }]
+        }
+      }
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": { "exec": [], "type": "text/javascript" }
+    },
+    {
+      "listen": "test",
+      "script": { "exec": [], "type": "text/javascript" }
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8000"
+    }
+  ]
+}

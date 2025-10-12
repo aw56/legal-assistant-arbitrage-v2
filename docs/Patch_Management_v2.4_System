@@ -1,0 +1,140 @@
+# 🧩 Patch Management — v2.4 System
+
+### Legal Assistant Arbitrage — Modular Patch Pipeline
+
+*(совместимо с твоей структурой `patches/*.patch`, `artifacts/` и Makefile v2.4)*
+
+---
+
+## 📁 1. Структура каталогов
+
+```
+legal-assistant-arbitrage-v2/
+├── patches/
+│   ├── v2.4_20251012_fix_laws_search.patch
+│   ├── v2.4_20251012_add_mock_integration.patch
+│   └── v2.4_20251012_readme_update.patch
+├── artifacts/
+│   ├── PATCH_AUDIT_20251012.md
+│   └── ...
+├── Makefile
+└── backend/
+```
+
+---
+
+## ⚙️ 2. Вставь в конец Makefile
+
+```makefile
+# =============================
+# 🧩 PATCH MANAGEMENT v2.4
+# =============================
+
+PATCH_DIR := patches
+PATCH_AUDIT := artifacts/PATCH_AUDIT_$(shell date +%Y%m%d).md
+
+# 🔍 Проверка применимости патчей без их установки
+patch-check:
+	@echo "🔍 Checking all patches in $(PATCH_DIR)..."
+	@for f in $(PATCH_DIR)/*.patch; do \
+		echo "\n➡️  Checking $$f"; \
+		git apply --check $$f || echo "⚠️  Patch $$f cannot be applied cleanly"; \
+	done
+
+# 🧪 Тестовый dry-run (показывает результат применения)
+patch-test:
+	@echo "🧪 Simulating patch application..."
+	@for f in $(PATCH_DIR)/*.patch; do \
+		echo "\n🧩 Testing $$f"; \
+		git apply --stat $$f; \
+	done
+
+# 🚀 Применение всех патчей
+patch-apply:
+	@echo "🚀 Applying all patches..."
+	@echo "# 🧩 PATCH AUDIT — $$(date)" > $(PATCH_AUDIT)
+	@for f in $(PATCH_DIR)/*.patch; do \
+		echo "\n✅ Applying $$f"; \
+		if git apply --whitespace=fix $$f; then \
+			echo "- $$f — ✅ Applied" >> $(PATCH_AUDIT); \
+		else \
+			echo "- $$f — ❌ Failed" >> $(PATCH_AUDIT); \
+		fi; \
+	done
+	@echo "\n📘 Audit written to $(PATCH_AUDIT)"
+
+# ⏪ Откат патчей (по git reset)
+patch-rollback:
+	@echo "⏪ Rolling back all local patch changes..."
+	@git reset --hard HEAD
+
+# 📦 Создание нового патча
+patch-create:
+	@if [ -z "$(name)" ]; then echo "❌ Usage: make patch-create name=description"; exit 1; fi
+	@ts=$$(date +%Y%m%d_%H%M); \
+	fn="$(PATCH_DIR)/v2.4_$${ts}_$${name}.patch"; \
+	echo "📝 Creating patch: $$fn"; \
+	git diff > $$fn; \
+	echo "✅ Saved: $$fn"
+```
+
+---
+
+## 💡 3. Примеры использования
+
+| Команда                                     | Описание                                               |
+| ------------------------------------------- | ------------------------------------------------------ |
+| `make patch-check`                          | Проверить применимость всех патчей (без модификации).  |
+| `make patch-test`                           | Показать diff-статистику всех патчей (аналог dry-run). |
+| `make patch-apply`                          | Применить все `.patch` из `patches/` и создать отчёт.  |
+| `make patch-rollback`                       | Откатить изменения, вернув HEAD к текущему коммиту.    |
+| `make patch-create name=fix_laws_search_v2` | Снять новый патч с текущих изменений.                  |
+
+---
+
+## 🧾 4. Пример audit-отчёта
+
+`artifacts/PATCH_AUDIT_20251012.md`
+
+```markdown
+# 🧩 PATCH AUDIT — 2025-10-12 10:50
+
+- patches/v2.4_20251012_fix_laws_search.patch — ✅ Applied
+- patches/v2.4_20251012_add_mock_integration.patch — ✅ Applied
+- patches/v2.4_20251012_readme_update.patch — ❌ Failed (context mismatch)
+
+📘 Все успешные изменения применены.
+```
+
+---
+
+## 🔒 5. Best practices
+
+* Перед `patch-apply` всегда делай `git commit -am "pre-patch checkpoint"`.
+* Не держи патчи старше **7 дней** без обновления — они теряют контекст.
+* При CI-тестах используй:
+
+  ```bash
+  make patch-check && pytest -q && make patch-rollback
+  ```
+
+  чтобы гарантировать чистоту кода.
+
+---
+
+## ✅ 6. Твой следующий шаг
+
+Выполни:
+
+```bashmake patch-check
+make patch-test
+```
+
+→ получишь отчёт о всех патчах, без их реального применения.
+Если всё зелёное — можешь запускать:
+
+```bash
+make patch-apply
+```
+
+---

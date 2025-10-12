@@ -1,0 +1,71 @@
+--- a/Makefile
++++ b/Makefile
+@@ -999,6 +999,87 @@
+         docker compose -f docker-compose.prod.yml exec backend bash
+
++
++# ===============================================
++# 🧠 SED TOOLKIT v4 — Автоматические правки кода
++# ===============================================
++
++SED_RULES := scripts/sed_auto_rules.txt
++SED_BACKUP := artifacts/sed_backup_$(shell date +%Y%m%d_%H%M%S).tar.gz
++
++# 🔹 Помощь
++sed-help:
++	@echo "======================================="
++	@echo "🧠  SED TOOLKIT v4 — Автоматические правки"
++	@echo "---------------------------------------"
++	@echo " make sed-template   — создать шаблон правил"
++	@echo " make sed-validate   — проверить корректность файла"
++	@echo " make sed-fix-rules  — исправить стрелки и кодировку"
++	@echo " make sed-auto       — применить все замены"
++	@echo " make sed-backup     — сделать резервную копию проекта"
++	@echo "---------------------------------------"
++	@echo "Пример правила: DEBUG→INFO"
++	@echo "======================================="
++
++# 🔹 Создание шаблона правил
++sed-template:
++	@echo "🧾 Пересоздаю шаблон $(SED_RULES)..."
++	@mkdir -p scripts
++	@echo "DEBUG→INFO" > $(SED_RULES)
++	@echo "localhost→api.legal.local" >> $(SED_RULES)
++	@echo "v2.3→v2.4" >> $(SED_RULES)
++	@echo "\"testuser\"→\"apitest\"" >> $(SED_RULES)
++	@echo "✅ Шаблон пересоздан."
++
++# 🔹 Проверка правил
++sed-validate:
++	@echo "🔍 Проверка файла $(SED_RULES)..."
++	@file $(SED_RULES)
++	@if ! grep -q "→" $(SED_RULES); then echo "❌ Ошибка: разделитель → не найден."; exit 1; fi
++	@echo "✅ Разделитель найден."
++	@echo "🧩 Проверка завершена."
++
++# 🔹 Исправление правил (конвертация -> → и чистка BOM/CRLF)
++sed-fix-rules:
++	@echo "🧠 Исправление стрелок и кодировки..."
++	@iconv -f utf-8 -t utf-8 -c $(SED_RULES) | tr -d '\r' | sed '1s/^\xEF\xBB\xBF//' | \
++	sed 's/->/→/g' > tmp_rules.txt
++	@mv tmp_rules.txt $(SED_RULES)
++	@echo "✅ Исправлено и сохранено."
++
++# 🔹 Резервная копия проекта
++sed-backup:
++	@echo "💾 Создаю резервную копию..."
++	@mkdir -p artifacts
++	@tar -czf $(SED_BACKUP) backend scripts Makefile || true
++	@echo "✅ Бэкап создан: $(SED_BACKUP)"
++
++# 🔹 Основная команда: авто-замены
++sed-auto: sed-validate
++	@echo "🤖 Применение авто-правил из $(SED_RULES)..."
++	@while IFS='→' read -r pattern replace; do \
++		if [ -n "$$pattern" ] && [ -n "$$replace" ]; then \
++			echo "🔧 Ищу '$$pattern' → '$$replace'..."; \
++			find backend -type f -name "*.py" -print0 | xargs -0 sed -i "s/$$pattern/$$replace/g" || true; \
++		fi; \
++	done < $(SED_RULES)
++	@echo "🚀 sed-auto завершено успешно."
++

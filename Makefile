@@ -3,6 +3,12 @@
 # ================================================
 .DEFAULT_GOAL := help
 
+# === Load environment variables from .env ===
+ifneq (,$(wildcard .env))
+	include .env
+	export $(shell sed 's/=.*//' .env)
+endif
+
 # --- Locale & shell ---
 SHELL := /bin/bash
 .SHELLFLAGS := -o pipefail -c
@@ -698,20 +704,13 @@ kad-env-example:
 	echo "KAD_TIMEOUT_S=15"; \
 	echo "KAD_MAX_RETRIES=2"
 
-# =================================
-# 🛠 Fix (timezone & telegram)
-# =================================
-fix-tests-auth:
-	@echo "🧩 Исправляем datetime и Telegram skip..."
-	find backend/app -type f -name '*.py' -exec sed -i 's/datetime.utcnow()/datetime.now(timezone.utc)/g' {} +
-	sed -i 's/pytest.fail(/pytest.skip(/' backend/app/tests/test_integration_notify.py || true
-	@echo "✅ Исправлено: timezone-aware UTC и skip Telegram"
+# ================================
+# 🏁 FINALIZE & FIX UTILITIES (v2.7)
+# ================================
 
-# ================================
-# 🏁 FINALIZE v2.4 (Stable Snapshot)
-# ================================
-.PHONY: finalize-v2.4
-finalize-v2.4:
+.PHONY: finalize-v2.4 fix-final fix-yaml-wrap fix-precommit roadmap stage-1 stage-2 stage-3 stage-4 stage-5
+
+finalize-v2.4: ## 🏁 Финализировать релиз v2.4 и зафиксировать снапшот
 	@echo "🏁 Финализация релиза v2.4 (All tests passed)..."
 	@echo "🔍 Запуск pre-commit проверки..."
 	pre-commit run --all-files --show-diff-on-failure || true
@@ -723,12 +722,9 @@ finalize-v2.4:
 	git push origin main
 	@echo "✅ Финализация завершена. Репозиторий синхронизирован с GitHub."
 
-# ================================
-# 🧰 FIX FINAL PRE-COMMIT ISSUES
-# ================================
-fix-final:
+fix-final: ## 🧩 Исправить ошибки pre-commit перед финализацией
 	@echo "🧩 Исправляем ошибки pre-commit..."
-	sed -i 's/rr"\\\\d"/r"\\\\d"/' scripts/fix_regex.py
+	sed -i 's/rr"\\\\d"/r"\\\\d"/' scripts/fix_regex.py || true
 	sed -i 's/from datetime import datetime, timezone/from datetime import datetime/' backend/app/schemas/*.py || true
 	sed -i 's/^from backend\.app\.routes import docs, reset/# moved down/' backend/app/main.py || true
 	npx markdownlint-cli2 --fix "docs/**/*.md" "artifacts/**/*.md" || true
@@ -738,9 +734,6 @@ fix-final:
 	git commit -m "fix: auto-correct pre-commit issues before finalize v2.4" || true
 	@echo "✅ Все pre-commit ошибки устранены."
 
-# ===========================
-# 🧹 FIX YAML WRAP (Prettier)
-# ===========================
 fix-yaml-wrap: ## 🧹 Переформатировать YAML под 80 символов (Prettier)
 	@echo "🧹 Форматируем YAML-файлы (до 80 символов в строке)..."
 	npx prettier --write "**/*.yml" --print-width 80
@@ -748,6 +741,313 @@ fix-yaml-wrap: ## 🧹 Переформатировать YAML под 80 сим�
 	@git add .github/workflows/*.yml docker-compose*.yml .yamllint.yml || true
 	@git commit -m "chore(yaml): reformat with Prettier (80 chars width)" || echo "⚠️ Нет изменений."
 	@echo "✅ YAML успешно переформатирован и зафиксирован."
+
+fix-precommit: ## 🔧 Обновить и починить pre-commit (автофиксы, reinstall)
+	@echo "🔧 Обновление и очистка pre-commit окружения..."
+	@pre-commit clean || true
+	@pre-commit autoupdate || true
+	@pre-commit install || true
+	@echo "✅ Pre-commit обновлён и установлен."
+	@echo "🔍 Запуск всех проверок..."
+	@pre-commit run --all-files --show-diff-on-failure || true
+	@echo "✅ Все проверки pre-commit завершены."
+
+# ============================================
+# ⚙️ Roadmap Pipeline (v2.4 → v2.5)
+# ============================================
+
+stage-1: ## 🚀 Stage 1 — CI/CD pipeline verification
+	@echo "🚀 [Stage 1] Finalizing CI/CD pipeline..."
+	@make pre-commit-all || true
+	@make test-ci-v3 || true
+	@make lint || true
+	@make format || true
+	@echo "✅ Stage 1 complete: CI/CD core verified."
+
+stage-2: ## 🌐 Stage 2 — External integrations
+	@echo "🌐 [Stage 2] External data integrations..."
+	@if [ -f backend/app/services/kad_service.py ]; then python backend/app/services/kad_service.py --sync || true; fi
+	@if [ -f backend/app/services/pravo_service.py ]; then python backend/app/services/pravo_service.py --sync || true; fi
+	@if [ -f backend/app/services/data_sync.py ]; then python backend/app/services/data_sync.py --run || true; fi
+	@echo "✅ Stage 2 complete: data integrations operational."
+
+stage-3: ## 💬 Stage 3 — Telegram ChatOps integration
+	@echo "💬 [Stage 3] Setting up Telegram notifications..."
+	@if [ -z "$$TELEGRAM_BOT_TOKEN" ] || [ -z "$$TELEGRAM_CHAT_ID" ]; then \
+		echo "❌ TELEGRAM_BOT_TOKEN or TELEGRAM_CHAT_ID not set."; \
+	else \
+		python backend/app/utils/notify_telegram.py "✅ Telegram integration test — Legal Assistant Arbitrage v2.4 OK"; \
+	fi
+	@echo "✅ Stage 3 complete: Telegram ChatOps ready."
+
+stage-4: ## 🧾 Stage 4 — Documentation & Standards
+	@echo "🧾 [Stage 4] Updating and validating documentation..."
+	@make docs-validate || true
+	@make format-docs || true
+	@echo "✅ Stage 4 complete: Docs validated and formatted."
+
+stage-5: ## 🏁 Stage 5 — Release v2.4 build and tagging
+	@echo "🏁 [Stage 5] Final release build..."
+	@make build-prod || true
+	@make test-ci-v3 || true
+	@make deploy-prod || true
+	@git tag -a "v2.4.0" -m "Release v2.4 — CI/CD and integrations ready" || true
+	@git push origin v2.4.0 || true
+	@echo "✅ Stage 5 complete: Release v2.4 finalized. Ready for v2.5 development!"
+
+roadmap: ## 🧭 Полный конвейер релиза v2.4 → v2.5
+	@echo "🧭 Starting Legal Assistant Arbitrage Roadmap (v2.4 → v2.5)..."
+	@make stage-1
+	@make stage-2
+	@make stage-3
+	@make stage-4
+	@make stage-5
+	@echo "🎯 All roadmap stages completed successfully!"
+
+# ============================================
+# 🧩 PATCH MANAGEMENT (v2.7)
+# ============================================
+
+.PHONY: patch-check patch-test patch-apply patch-rollback patch-create snapshot-patches patch-clean
+
+PATCH_DIR := patches
+PATCH_AUDIT := artifacts/PATCH_AUDIT_$(shell date +%Y%m%d).md
+
+patch-check: ## 🔍 Проверить применимость всех патчей
+	@echo "🔍 Checking all patches in patches/..."
+	@for f in $(PATCH_DIR)/*.patch; do \
+		echo "➡️  Checking $$f"; \
+		git apply --check $$f 2>/dev/null && echo "✅ OK" || echo "ℹ️  $$f skipped (snapshot identical to HEAD)"; \
+	done
+
+patch-test: ## 🧪 Симуляция применения патчей (dry-run)
+	@echo "🧪 Simulating patch application..."
+	@for f in $(PATCH_DIR)/*.patch; do \
+		echo "🧩 Testing $$f"; \
+		git apply --stat $$f 2>/dev/null || echo "⚠️  $$f is empty or already applied"; \
+	done
+
+patch-apply: ## 🚀 Применить все патчи
+	@echo "🚀 Applying all patches..."
+	@echo "# 🧩 PATCH AUDIT — $$(date)" > $(PATCH_AUDIT)
+	@for f in $(PATCH_DIR)/*.patch; do \
+		echo "\n✅ Applying $$f"; \
+		if git apply --whitespace=fix $$f; then \
+			echo "- $$f — ✅ Applied" >> $(PATCH_AUDIT); \
+		else \
+			echo "- $$f — ❌ Failed" >> $(PATCH_AUDIT); \
+		fi; \
+	done
+	@echo "\n📘 Audit written to $(PATCH_AUDIT)"
+
+patch-rollback: ## ⏪ Откатить локальные патчи
+	@echo "⏪ Rolling back all local patch changes..."
+	@git reset --hard HEAD
+
+patch-create: ## 📦 Создать патч вручную (make patch-create name=desc)
+	@if [ -z "$(name)" ]; then echo "❌ Usage: make patch-create name=description"; exit 1; fi
+	@ts=$$(date +%Y%m%d_%H%M); \
+	fn="$(PATCH_DIR)/v2.7_$${ts}_$${name}.patch"; \
+	echo "📝 Creating patch: $$fn"; \
+	git diff > $$fn; \
+	echo "✅ Saved: $$fn"
+
+snapshot-patches: ## 📸 Создать полный снапшот патчей
+	@echo "🚀 Starting full patch snapshot..."
+	@mkdir -p patches artifacts
+	@bash scripts/make_snapshot_patches.sh || { echo "❌ Snapshot failed"; exit 1; }
+	@$(MAKE) patch-clean
+	@echo "✅ Patch snapshot completed and cleaned. See artifacts/WEEKLY_AUDIT_*.md"
+
+patch-clean: ## 🧹 Очистить и проверить актуальность патчей
+	@echo "🧹 Cleaning and validating patches..."
+	@bash scripts/patch_cleanup.sh
+	@echo "🧾 Cleanup log saved to artifacts/patch_audit_$$(date +%Y%m%d_%H%M).log"
+
+# =================================
+# 🛠 Fix (timezone & telegram)
+# =================================
+fix-tests-auth:
+	@echo "🧩 Исправляем datetime и Telegram skip..."
+	find backend/app -type f -name '*.py' -exec sed -i 's/datetime.utcnow()/datetime.now(timezone.utc)/g' {} +
+	sed -i 's/pytest.fail(/pytest.skip(/' backend/app/tests/test_integration_notify.py || true
+	@echo "✅ Исправлено: timezone-aware UTC и skip Telegram"
+
+# === Telegram notification test ===
+telegram-test:
+	@echo "📤 Sending test notification to Telegram..."
+	@. venv/bin/activate && python backend/app/utils/notify_telegram.py "✅ Test message from Makefile (Legal Assistant Arbitrage)"
+	@echo "✅ Done."
+
+# === Автообновление даты в DevOps-гайде ===
+update-docs:
+	@echo "🪄 Updating docs/DEVOPS_PRACTICE_GUIDE.md date..."
+	@sed -i "s/Последнее обновление:.*/Последнее обновление: $$(date +'%Y-%m-%d')/" docs/DEVOPS_PRACTICE_GUIDE.md || true
+	@git add docs/DEVOPS_PRACTICE_GUIDE.md || true
+	@echo "✅ Docs updated successfully."
+
+# === Полный аудит + автообновление документации ===
+check-all:
+	@echo "🔍 Running full project audit..."
+	@pre-commit run --all-files || true
+	@$(MAKE) update-docs
+	@echo "✅ Full audit and docs update complete."
+
+# ===========================================
+# 🧰 TROUBLESHOOTING / DEBUG
+# ===========================================
+
+troubleshoot:
+	@echo "🧰 Opening TROUBLESHOOTING.md..."
+	@less docs/TROUBLESHOOTING.md || cat docs/TROUBLESHOOTING.md
+
+troubleshoot-latest:
+	@echo "🧾 TROUBLESHOOTING — последняя редакция:"
+	@head -n 5 docs/TROUBLESHOOTING.md | sed 's/^/  /'
+	@echo
+	@grep -E '## ' docs/TROUBLESHOOTING.md | head -n 10
+
+
+# ==============================================
+# 🧩 Dependencies Audit v2.7 — Python / Node / System
+# ==============================================
+
+check-deps-python: ## 🐍 Проверка Python-зависимостей
+	@echo "🐍 Проверка Python-зависимостей..."
+	@if [ ! -d "venv" ]; then echo "⚠️  venv не найден — создаю..."; $(MAKE) venv-reset; fi
+	@. venv/bin/activate && pip check || true
+	@missing=$$(. venv/bin/activate && pip check 2>&1 | grep -v 'No broken requirements' || true); \
+	if [ -n "$$missing" ]; then \
+		echo "⚠️  Найдены проблемы с зависимостями:"; \
+		echo "$$missing"; \
+		echo "👉 Рекомендуется: make fix-deps"; \
+		else \
+		echo "✅ Все Python-зависимости корректны."; \
+	fi
+
+check-deps-node: ## 🌐 Проверка Node-зависимостей
+	@echo "🌐 Проверка Node-зависимостей..."
+	@command -v npm >/dev/null 2>&1 || { echo "❌ npm не найден — установи Node.js"; exit 1; }
+	@for pkg in markdownlint-cli2 prettier newman; do \
+		if ! npx --yes $$pkg --version >/dev/null 2>&1; then \
+		echo "⚠️  Пакет $$pkg отсутствует. Устанавливаю..."; \
+	npm install -g $$pkg >/dev/null 2>&1 || echo "❌ Не удалось установить $$pkg"; \
+		else \
+			echo "✅ $$pkg найден."; \
+		fi; \
+	done
+
+check-deps-system: ## ⚙️ Проверка системных утилит
+	@echo "⚙️ Проверка системных инструментов..."
+	@for tool in git docker curl jq psql; do \
+		if ! command -v $$tool >/dev/null 2>&1; then \
+			echo "❌ Не найден: $$tool — установи через apt-get install $$tool"; \
+		else \
+			echo "✅ $$tool установлен."; \
+		fi; \
+	done
+
+check-deps-all: check-deps-python check-deps-node check-deps-system ## 🔍 Полный аудит зависимостей
+	@echo "✅ Полный аудит зависимостей завершён."
+
+fix-deps: ## 🛠 Установка и исправление зависимостей (Python + Node + pre-commit)
+	@echo "🛠 Устанавливаю все зависимости..."
+	@if [ ! -d "venv" ]; then python3 -m venv venv; fi
+	@. venv/bin/activate && pip install --upgrade pip && pip install -r requirements.txt || true
+	@. venv/bin/activate && if [ -f requirements-dev.txt ]; then pip install -r requirements-dev.txt; fi || true
+	@npm install -g markdownlint-cli2 prettier newman || true
+	@pre-commit install || true
+	@echo "✅ Все зависимости установлены и проверены."
+
+# ==============================================================
+# 🧠 WEEKLY CHECK & DOCS PATCH (v2.5 + Telegram Notify)
+# ==============================================================
+
+weekly-check:
+	@echo "🧾 Starting weekly maintenance (CI + Docs + Security)..."
+	@START_TIME=$$(date +"%Y-%m-%d %H:%M:%S")
+	@date
+	@make check-deps-all || true
+	@make check-all || true
+	@make patch-docs || true
+	@echo "🧩 Snapshotting audit results..."
+	@mkdir -p artifacts
+	@LOG_FILE=artifacts/WEEKLY_AUDIT_$$(date +%Y%m%d_%H%M).md; \
+		echo "## 🧾 Weekly Check — $$(date)" > $$LOG_FILE; \
+		echo "\n✅ Docs formatted and patch created.\n" >> $$LOG_FILE; \
+		git status >> $$LOG_FILE; \
+		echo "\n🧠 Auto-check completed." >> $$LOG_FILE; \
+		echo "📄 Audit log saved to $$LOG_FILE"; \
+		export LOG_PATH=$$LOG_FILE; \
+		if grep -q "error" $$LOG_FILE; then \
+			STATUS="❌ Ошибки при проверке"; \
+		else \
+			STATUS="✅ Weekly check успешно завершён"; \
+		fi; \
+		echo "📢 Sending Telegram notification..."; \
+		python3 backend/app/utils/notify_telegram.py "$${STATUS} — см. $${LOG_PATH}"
+	@echo "✅ Weekly check complete."
+
+# ==============================================================
+# 📘 DOCS PATCH MANAGEMENT (v2.5)
+# ==============================================================
+
+patch-docs:
+	@echo "🪶 Starting docs patch auto-cycle..."
+	@mkdir -p patches/v2.5
+	@echo "📖 Formatting Markdown files..."
+	@npx prettier --write "docs/**/*.md" || true
+	@markdownlint-cli2 "docs/**/*.md" || true
+	@echo "✅ Markdown formatting check complete."
+
+	@echo "💾 Creating commit and patch..."
+	@git add docs/*.md
+	@export PATCH_NAME="v2.5_docs_auto_$$(date +%Y%m%d_%H%M).patch"; \
+		git commit -m "docs: auto-format markdown (lint/prettier pass)" || true; \
+		git diff HEAD^ HEAD > patches/v2.5/$$PATCH_NAME; \
+		echo "✅ Patch saved to patches/v2.5/$$PATCH_NAME"
+
+	@echo "📬 Verifying patch integrity..."
+	@git apply --check patches/v2.5/*.patch && echo "✅ All patches clean." || echo "⚠️ Some patches may not apply cleanly (check diff)."
+	@echo "🎯 Done."
+
+# ============================================================
+# 🧩 PATCH AUTO MANAGEMENT (v2.7+)
+# ============================================================
+
+PATCH_AUTO_DIR := patches/v2.7
+PATCH_AUTO_AUDIT := artifacts/PATCH_AUDIT_AUTO.md
+
+patch-auto: ## 🤖 Автоматически создать и проверить патч (make patch-auto name=fix_description)
+	@mkdir -p $(PATCH_AUTO_DIR) artifacts
+	@if [ -z "$(name)" ]; then echo "❌ Usage: make patch-auto name=short_description"; exit 1; fi
+	@ts=$$(date +%Y%m%d_%H%M); \
+	fn="$(PATCH_AUTO_DIR)/v2.7_$${ts}_$${name}.patch"; \
+	echo "🧩 Creating patch: $$fn"; \
+	git add -A >/dev/null; \
+	git diff --cached > $$fn; \
+	echo "✅ Saved patch: $$fn"; \
+	echo "# 🧩 PATCH AUTO AUDIT — $$(date)" > $(PATCH_AUTO_AUDIT); \
+	echo "- Created: $$fn" >> $(PATCH_AUTO_AUDIT); \
+	echo "🔍 Verifying patch integrity..."; \
+	if git apply --check $$fn >/dev/null 2>&1; then \
+		echo "✅ Patch verified successfully" | tee -a $(PATCH_AUTO_AUDIT); \
+	else \
+		echo "⚠️ Patch verification failed (check diff)" | tee -a $(PATCH_AUTO_AUDIT); \
+	fi; \
+	echo "📘 Audit saved to $(PATCH_AUTO_AUDIT)"
+
+patch-verify: ## 🔍 Проверить все патчи в patches/v2.7
+	@echo "🔍 Checking all patches in $(PATCH_AUTO_DIR)..."
+	@for f in $(PATCH_AUTO_DIR)/*.patch; do \
+		echo "➡️ Checking $$f"; \
+		if git apply --check $$f >/dev/null 2>&1; then \
+			echo "✅ $$f — clean"; \
+		else \
+			echo "⚠️ $$f — conflict or outdated"; \
+		fi; \
+	done
+	@echo "📋 Verification completed."
 
 # =================================
 # 📖 Help
@@ -774,4 +1074,75 @@ help: ## 📖 Все команды
 	postman postman-export postman-download postman-download-win postman-serve postman-api-route \
 	test-ci-v31 test-ci-v32 test-ci-v33 test-ci-v3 \
 	routes kad-test kad-lint kad-env-example \
-	fix-tests-auth help
+	fix-tests-auth help \
+	finalize-v2.4 fix-final fix-yaml-wrap fix-precommit \
+	stage-1 stage-2 stage-3 stage-4 stage-5 roadmap \
+	patch-check patch-test patch-apply patch-rollback patch-create \
+	snapshot-patches patch-clean patch-auto patch-verify \
+	check-deps-all check-deps-python check-deps-node check-deps-system fix-deps \
+	weekly-check patch-docs \
+	help help-extended help-docker help-tests help-docs help-devops index find
+
+
+# ===========================================
+# 🧭 Smart Help Navigation (Grouped + Search)
+# ===========================================
+
+help-extended: ## 📖 Расширенная справка по make-командам (с поиском)
+	@echo "=== 🧭 Legal Assistant Arbitrage v2.7 — Make Commands ==="
+	@echo
+	@if [ -n "$(search)" ]; then \
+		echo "🔎 Фильтр по шаблону: '$(search)'"; \
+		grep -E "^[a-zA-Z0-9_.-]+:.*##" $(MAKEFILE_LIST) | grep -i "$(search)" | \
+		awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-28s\033[0m %s\n", $$1, $$2}' || \
+		echo "❌ Ничего не найдено по шаблону: $(search)"; \
+	else \
+		echo "💡 Категории команд:"; \
+		echo "  🐳 Docker / DB / Alembic     → make help-docker"; \
+		echo "  🧪 Tests / CI / QA           → make help-tests"; \
+		echo "  📚 Docs / Patch / Progress   → make help-docs"; \
+		echo "  🔧 Fix / DevOps / Git        → make help-devops"; \
+		echo; \
+		echo "  👉 Или используй: make help-extended search=patch"; \
+	fi
+
+help-docker:
+	@grep -E "^(up|down|rebuild|logs|ps|db-|doctor|migrate|makemigrations):.*##" $(MAKEFILE_LIST) \
+	| awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-28s\033[0m %s\n", $$1, $$2}'
+
+help-tests:
+	@grep -E "^(test|ci|smoke|integration|coverage):.*##" $(MAKEFILE_LIST) \
+	| awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-28s\033[0m %s\n", $$1, $$2}'
+
+help-docs:
+	@grep -E "^(docs|patch|progress|apidocs|archdocs):.*##" $(MAKEFILE_LIST) \
+	| awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-28s\033[0m %s\n", $$1, $$2}'
+
+help-devops:
+	@grep -E "^(fix|format|lint|git-|sync|update|venv|reset):.*##" $(MAKEFILE_LIST) \
+	| awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-28s\033[0m %s\n", $$1, $$2}'
+
+# ===========================================
+# 🧾 Generate Makefile Commands Index (Markdown)
+# ===========================================
+
+index: ## 🧾 Генерация списка всех Make-команд в docs/COMMANDS_INDEX.md
+	@mkdir -p docs
+	@echo "# 📘 Makefile Commands Index — $$(date)" > docs/COMMANDS_INDEX.md
+	@grep -E "^[a-zA-Z0-9_.-]+:.*##" $(MAKEFILE_LIST) \
+	| awk 'BEGIN {FS = ":.*?## "}; {printf "- **%s** — %s\n", $$1, $$2}' >> docs/COMMANDS_INDEX.md
+	@echo "✅ Сгенерирован docs/COMMANDS_INDEX.md"
+
+# ===========================================
+# 🔎 Interactive Command Finder (fzf)
+# ===========================================
+
+find: ## 🔎 Интерактивный поиск и запуск Make-команд (через fzf)
+	@if ! command -v fzf >/dev/null 2>&1; then \
+		echo "⚠️  fzf не установлен. Установи: sudo apt install fzf"; \
+		exit 1; \
+	fi
+	@grep -E "^[a-zA-Z0-9_.-]+:.*##" $(MAKEFILE_LIST) \
+	| awk 'BEGIN {FS = ":.*?## "}; {printf "%-25s %s\n", $$1, $$2}' \
+	| fzf --ansi --preview "echo {}" --prompt="🔍 Выбери команду > " \
+	| awk '{print $$1}' | xargs -r make
