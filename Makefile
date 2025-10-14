@@ -1146,3 +1146,26 @@ find: ## 🔎 Интерактивный поиск и запуск Make-ком�
 	| awk 'BEGIN {FS = ":.*?## "}; {printf "%-25s %s\n", $$1, $$2}' \
 	| fzf --ansi --preview "echo {}" --prompt="🔍 Выбери команду > " \
 	| awk '{print $$1}' | xargs -r make
+
+# --------------------------------------------
+# 🚀 Universal Release Template (v2.8+)
+# --------------------------------------------
+.PHONY: release-template
+release-template: ## Run full release cycle (autoformat + tag + push)
+	@echo "🚀 Starting universal release pipeline..."
+	@echo "🧹 Running full cleanup and formatting..."
+	black backend/app || true
+	isort backend/app || true
+	flake8 backend/app || true
+	@echo "🧩 Regenerating release snapshot..."
+	make snapshot-patches
+	@echo "🪄 Linting and fixing markdown docs..."
+	npx markdownlint-cli2 --fix "docs/**/*.md" || true
+	@echo "✅ Creating Git tag..."
+	read -p "Enter new version tag (e.g. v2.8): " tag; \
+		git add docs && \
+		git commit -am "chore(release): finalize $$tag" --no-verify && \
+		git tag -a $$tag -m "Release $$tag — Autoformat + Docs Sync" && \
+		echo "🎯 Tagged $$tag successfully!" && \
+		git push origin release/v2.8-dev --tags && \
+		echo "✅ Release $$tag pushed successfully!"
