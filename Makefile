@@ -1169,3 +1169,4 @@ release-template: ## Run full release cycle (autoformat + tag + push)
 		echo "🎯 Tagged $$tag successfully!" && \
 		git push origin release/v2.8-dev --tags && \
 		echo "✅ Release $$tag pushed successfully!"
+# test line
