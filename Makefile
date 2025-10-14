@@ -1170,3 +1170,6 @@ release-template: ## Run full release cycle (autoformat + tag + push)
 		git push origin release/v2.8-dev --tags && \
 		echo "✅ Release $$tag pushed successfully!"
 # test line
+
+include make/patch-verify.mk
+include make/release-template.mk

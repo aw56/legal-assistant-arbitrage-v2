@@ -2,11 +2,8 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from backend.app import models, schemas
-from backend.app.core.security import (
-    create_access_token,
-    get_current_user,
-    verify_password,
-)
+from backend.app.core.security import (create_access_token, get_current_user,
+                                       verify_password)
 from backend.app.database import get_db
 from backend.app.services import users as user_service
 
