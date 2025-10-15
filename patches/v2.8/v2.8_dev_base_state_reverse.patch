@@ -51,58 +51,6 @@ backup-makefile: ## 💾 Создать резервную копию Makefile �
 	@cp Makefile backup/Makefile_$(shell date '+%Y%m%d_%H%M%S').bak
 	@echo "✅ Резервная копия Makefile создана в ./backup"
 
-# ================================================
-# 🧩 Pre-Change Verification & Safe Push Suite (v2.8)
-# ================================================
-
-.PHONY: verify-code verify-docs verify-before-change safe-push
-
-# --- Проверка Python-стека ---
-verify-code: ## Проверка black, isort, flake8
-	@echo "🧩 Step 1: Verifying Python stack (black, isort, flake8)..."
-	@pre-commit run black --all-files || true
-	@pre-commit run isort --all-files || true
-	@pre-commit run flake8 --all-files || true
-	@echo "✅ Code verification passed."
-
-# --- Проверка документации ---
-verify-docs: ## Проверка и автофиксация markdown/yaml-документов
-	@echo "🧾 Step 2: Verifying documentation (markdown/yaml)..."
-	@npx markdownlint-cli2 --fix "docs/**/*.md" || true
-	@pre-commit run markdownlint --all-files || true
-	@pre-commit run yamllint --all-files || true
-	@echo "✅ Documentation verification complete (autofixed if needed)."
-
-# --- Полный pre-change аудит ---
-verify-before-change: ## Полный аудит перед изменениями
-	@echo "🔍 Starting pre-change verification suite..."
-	@python3 --version
-	@echo "🧩 Checking dependencies..."
-	@pip check || echo "⚠️ Some dependencies may be outdated (ignored)."
-	@echo "🧩 Checking Docker environment..."
-	@docker compose config >/dev/null 2>&1 && echo "✅ Docker Compose valid." || echo "⚠️ Docker Compose not found, skipping."
-	@$(MAKE) verify-code
-	@$(MAKE) verify-docs
-	@echo "🧩 Running pre-commit audit..."
-	@pre-commit run --all-files || true
-	@echo "✅ Pre-change verification finished successfully."
-
-# --- Безопасный пуш (универсальный сценарий) ---
-safe-push: ## Полный аудит + коммит + пуш без конфликтов
-	@echo "🚀 Running full safe-push pipeline..."
-	@$(MAKE) verify-before-change
-	@echo "🧩 Staging fixed files..."
-	@git add . || true
-	@if ! git diff --cached --quiet; then \
-		echo "💾 Creating auto-commit for verified changes..."; \
-		git commit -m 'chore(auto): safe push after verification (v2.8)' --no-verify || true; \
-	else \
-		echo "🟢 No staged changes to commit."; \
-	fi
-	@echo "📤 Pushing to origin..."
-	@git push origin release/v2.8-dev || true
-	@echo "✅ Safe-push completed successfully!"
-
 # =================================
 # 🐳 Docker
 # =================================
@@ -1198,31 +1146,3 @@ find: ## 🔎 Интерактивный поиск и запуск Make-ком�
 	| awk 'BEGIN {FS = ":.*?## "}; {printf "%-25s %s\n", $$1, $$2}' \
 	| fzf --ansi --preview "echo {}" --prompt="🔍 Выбери команду > " \
 	| awk '{print $$1}' | xargs -r make
-
-
-# --------------------------------------------
-# 🚀 Universal Release Template (v2.8+)
-# --------------------------------------------
-.PHONY: release-template
-release-template: ## Run full release cycle (autoformat + tag + push)
-	@echo "🚀 Starting universal release pipeline..."
-	@echo "🧹 Running full cleanup and formatting..."
-	black backend/app || true
-	isort backend/app || true
-	flake8 backend/app || true
-	@echo "🧩 Regenerating release snapshot..."
-	make snapshot-patches
-	@echo "🪄 Linting and fixing markdown docs..."
-	npx markdownlint-cli2 --fix "docs/**/*.md" || true
-	@echo "✅ Creating Git tag..."
-	read -p "Enter new version tag (e.g. v2.8): " tag; \
-		git add docs && \
-		git commit -am "chore(release): finalize $$tag" --no-verify && \
-		git tag -a $$tag -m "Release $$tag — Autoformat + Docs Sync" && \
-		echo "🎯 Tagged $$tag successfully!" && \
-		git push origin release/v2.8-dev --tags && \
-		echo "✅ Release $$tag pushed successfully!"
-# test line
-
-include make/patch-verify.mk
-include make/release-template.mk

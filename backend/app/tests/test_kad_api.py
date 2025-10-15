@@ -10,9 +10,15 @@ import httpx
 import pytest
 import respx
 
-from backend.app.integrations.kad_api import (CaseDetails, CaseShort, KadAPI,
-                                              KadAuthError, KadConfig,
-                                              KadNotFound, KadSync)
+from backend.app.integrations.kad_api import (
+    CaseDetails,
+    CaseShort,
+    KadAPI,
+    KadAuthError,
+    KadConfig,
+    KadNotFound,
+    KadSync,
+)
 
 BASE = "https://kad.example.local"
 
