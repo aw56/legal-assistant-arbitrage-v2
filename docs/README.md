@@ -1,6 +1,7 @@
 # ⚖️ Legal Assistant Arbitrage API — v2
 
-[![CI](https://github.com/your-org/legal-assistant-arbitrage-v2/actions/workflows/ci.yml/badge.svg)](https://github.com/your-org/legal-assistant-arbitrage-v2/actions/workflows/ci.yml)
+[![CI](https://github.com/your-org/legal-assistant-arbitrage-v2/actions/workflows/ci.yml/badge.svg)](<https://github.com/your-org/legal-assistant-arbitrage-v2/ac\>
+tions/workflows/ci.yml)
 [![Docs](https://github.com/your-org/legal-assistant-arbitrage-v2/actions/workflows/docs.yml/badge.svg)](docs/API_DOCS.md)
 
 ---
@@ -214,5 +215,6 @@ ________________________________________
 
 🔥 Теперь README полностью дополнен и содержит **Mermaid-диаграмму зависимостей**.
 
-Хочешь, я ещё соберу такой же **диаграммой последовательности (sequence diagram)** сценарий "Регистрация → Авторизация → Создание закона → Создание решения"? Это будет визуальный флоу для юзкейсов.
+Хочешь, я ещё соберу такой же **диаграммой последовательности (sequence diagram)** сценарий "Регистрация → Авторизация → Создание закона → Создание решения"? Эт\
+о будет визуальный флоу для юзкейсов.
 ```

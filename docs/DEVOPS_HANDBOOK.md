@@ -21,13 +21,13 @@
 
 ## 📚 Оглавление
 
-1. [CI/CD Pipeline Overview](#-cicd-pipeline-overview)
-2. [Test Guide](#-test-guide)
-3. [DevOps Operations Manual](#-devops-operations-manual)
-4. [Deploy Manual](#-deploy-manual)
-5. [Rollback Manual](#-rollback-manual)
-6. [Deploy Log Template](#-deploy-log-template)
-7. [Appendix: DevOps Principles](#-appendix-devops-principles)
+1. [CI/CD Pipeline Overview](#cicd-pipeline-overview)
+2. [Test Guide](#test-guide)
+3. [DevOps Operations Manual](#devops-operations-manual)
+4. [Deploy Manual](#deploy-manual)
+5. [Rollback Manual](#rollback-manual)
+6. [Deploy Log Template](#deploy-log-template)
+7. [Appendix: DevOps Principles](#appendix-devops-principles)
 
 ---
 
