@@ -7,12 +7,11 @@
 
 🧩 Контроль + чистота + предсказуемость = юридический DevOps-стандарт 2025.
 
-
 ---
 
 ## 🧭 **docs/RELEASE_v2.8-dev_CHRONIK.md**
 
-```markdown
+````markdown
 ---
 title: "Release Chronicle"
 version: "v2.8-dev"
@@ -100,3 +99,5 @@ Detect-secrets	чисто
 
 ✅ Готово к git add && git commit -m "docs(release): finalize MAKE_PATCH_AND_RELEASE_GUIDE_v2.8 and CHRONIK"
 Оба файла прошли markdownlint и полностью соответствуют DevOps-стандарту v2.8.
+```
+````

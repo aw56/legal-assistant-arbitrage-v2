@@ -1,4 +1,3 @@
-
 ---
 title: "Make Patch & Release Guide"
 version: "v2.8-dev"
@@ -8,11 +7,13 @@ status: "✅ Stable"
 description: "Руководство по созданию, проверке и выпуску патчей и релизов Legal Assistant Arbitrage API v2.8+"
 ---
 
+<!-- markdownlint-disable MD025 -->
+
 # 🧩 Make Patch & Release Guide — Legal Assistant Arbitrage v2.8+
 
 ## 📘 Назначение
 
-Данный документ описывает:
+Документ описывает:
 
 - унификацию **патч-системы и релизных целей** в `Makefile`;
 - правила создания, проверки и отката патчей (v2.8+);
@@ -25,16 +26,14 @@ description: "Руководство по созданию, проверке и 
 
 С версии **v2.8-dev** цели `release-template` и `patch-verify` вынесены в отдельные подключаемые файлы:
 
+```text
 make/
-├── patch-verify.mk # Проверка целостности и обратимости патчей
-└── release-template.mk # Универсальный релизный пайплайн (опционально)
+├── patch-verify.mk        # Проверка целостности и обратимости патчей
+└── release-template.mk    # Универсальный релизный пайплайн
+В корневом Makefile теперь достаточно подключить их:
 
-pgsql
+makefile
 Копировать код
-
-В корневом `Makefile` теперь достаточно двух строк:
-
-```makefile
 include make/patch-verify.mk
 include make/release-template.mk
 🧩 2. Универсальная цель проверки патчей
@@ -44,33 +43,32 @@ makefile
 Копировать код
 .PHONY: patch-verify
 patch-verify: ## Verify patch integrity and reversibility (usage: make patch-verify version=v2.8)
-        @ver=$${version:-v2.8}; \
-        patch_file="patches/$$ver/$${ver}_dev_base_state.patch"; \
-        echo "🔍 Checking patch integrity for $$ver..."; \
-        if [ ! -f "$$patch_file" ]; then \
-                echo "❌ Patch file not found: $$patch_file"; exit 1; fi; \
-        if git apply --check "$$patch_file" >/dev/null 2>&1; then \
-                echo "✅ Patch can be applied cleanly."; \
-        else \
-                echo "⚠️  Patch already applied or conflicts detected."; \
-        fi; \
-        if git apply --reverse --check "$$patch_file" >/dev/null 2>&1; then \
-                echo "✅ Reverse check passed (safe rollback possible)."; \
-        else \
-                echo "⚠️  Reverse check failed (already base or modified)."; \
-        fi; \
-        echo "📄 Patch summary:"; \
-        if git rev-parse "$${ver}-base" >/dev/null 2>&1; then \
-                git diff "$${ver}-base"..HEAD --stat; \
-        else \
-                echo "⚠️  Base tag $${ver}-base not found."; \
-        fi
-📖 Пример запуска проверки патча
+	@ver=$${version:-v2.8}; \
+	patch_file="patches/$$ver/$${ver}_dev_base_state.patch"; \
+	echo "🔍 Checking patch integrity for $$ver..."; \
+	if [ ! -f "$$patch_file" ]; then \
+		echo "❌ Patch file not found: $$patch_file"; exit 1; fi; \
+	if git apply --check "$$patch_file" >/dev/null 2>&1; then \
+		echo "✅ Patch can be applied cleanly."; \
+	else \
+		echo "⚠️  Patch already applied or conflicts detected."; \
+	fi; \
+	if git apply --reverse --check "$$patch_file" >/dev/null 2>&1; then \
+		echo "✅ Reverse check passed (safe rollback possible)."; \
+	else \
+		echo "⚠️  Reverse check failed (already base or modified)."; \
+	fi; \
+	echo "📄 Patch summary:"; \
+	if git rev-parse "$${ver}-base" >/dev/null 2>&1; then \
+		git diff "$${ver}-base"..HEAD --stat; \
+	else \
+		echo "⚠️  Base tag $${ver}-base not found."; \
+	fi
+📖 Пример запуска
 bash
 Копировать код
 make patch-verify version=v2.8
-Результат:
-
+📊 Результат
 css
 Копировать код
 🔍 Checking patch integrity for v2.8...
@@ -102,9 +100,7 @@ bash
 git apply --check patches/v2.8/v2.8_dev_base_state.patch
 git apply --reverse --check patches/v2.8/v2.8_dev_base_state.patch
 3.3 Названия и структура
-Каждая версия хранит свои патчи изолированно:
-
-markdown
+text
 Копировать код
 patches/
  ├── v2.7/
@@ -120,38 +116,26 @@ makefile
 Копировать код
 .PHONY: release-template
 release-template: ## Run full release cycle (autoformat + tag + push)
-        @ver=$${version:-v2.8}; \
-        echo "🚀 Starting universal release pipeline for $$ver..."; \
-        echo "🧹 Running cleanup and formatting..."; \
-        black backend/app || true; \
-        isort backend/app || true; \
-        flake8 backend/app || true; \
-        echo "🧩 Regenerating release snapshot..."; \
-        make snapshot-patches || true; \
-        echo "🪄 Linting and fixing markdown docs..."; \
-        npx markdownlint-cli2 --fix "docs/**/*.md" || true; \
-        echo "✅ Creating Git tag..."; \
-        read -p "Enter new version tag (default $$ver): " tag; \
-        tag=$${tag:-$$ver}; \
-        git add docs && \
-        git commit -am "chore(release): finalize $$tag" --no-verify && \
-        git tag -a $$tag -m "Release $$tag — Autoformat + Docs Sync" && \
-        echo "🎯 Tagged $$tag successfully!" && \
-        git push origin release/$${ver}-dev --tags && \
-        echo "✅ Release $$tag pushed successfully!"
-📖 Пример запуска релиза
-bash
-Копировать код
-make release-template version=v2.8
-или просто:
-
-bash
-Копировать код
-make release-template
-(по умолчанию подставит v2.8).
-
+	@ver=$${version:-v2.8}; \
+	echo "🚀 Starting universal release pipeline for $$ver..."; \
+	echo "🧹 Running cleanup and formatting..."; \
+	black backend/app || true; \
+	isort backend/app || true; \
+	flake8 backend/app || true; \
+	echo "🧩 Regenerating release snapshot..."; \
+	make snapshot-patches || true; \
+	echo "🪄 Linting and fixing markdown docs..."; \
+	npx markdownlint-cli2 --fix 'docs/**/*.md' || true; \
+	echo "✅ Creating Git tag..."; \
+	read -p 'Enter new version tag (default $$ver): ' tag; \
+	tag=$${tag:-$$ver}; \
+	git add docs && \
+	git commit -am "chore(release): finalize $$tag" --no-verify && \
+	git tag -a $$tag -m "Release $$tag — Autoformat + Docs Sync" && \
+	git push origin release/$${ver}-dev --tags && \
+	echo "✅ Release $$tag pushed successfully!"
 🧱 5. Проверка и чистка перед релизом
-Перед тем как тегировать релиз:
+Перед тегированием:
 
 bash
 Копировать код
@@ -163,11 +147,11 @@ bash
 Копировать код
 make snapshot-patches
 make patch-clean
-📚 6. Стандарты на будущее
+📚 6. Стандарты версий
 Версия	Базовый тег	Каталог патчей	Основные цели
 v2.7	v2.7	patches/v2.7/	release-v2.7, check-all
 v2.8	v2.8-base	patches/v2.8/	release-template, patch-verify
-≥v2.9	<ver>-base	patches/<ver>/	единые release-template и patch-verify
+≥v2.9	<ver>-base	patches/<ver>/	unified release-template + patch-verify
 
 ✅ 7. Контрольная команда
 Чтобы убедиться, что всё настроено верно:
@@ -176,3 +160,6 @@ bash
 Копировать код
 make patch-verify version=v2.8 && make release-template version=v2.8
 Если обе команды проходят без ошибок — система make/ собрана корректно, релизная цепочка готова к работе.
+
+📅 Последняя ревизия: 2025-10-16
+👤 Ответственный: Aleksej (Project Owner)

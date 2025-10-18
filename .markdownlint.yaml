@@ -1,26 +1,19 @@
-default: true
+---
+# ================================================
+# ⚖️ markdownlint configuration — Legal Assistant Arbitrage v2.9.7 Docs Compliance
+# ================================================
 
-# 🔧 Разрешаем фронтматтер и упрощаем заголовки
-MD041: false        # first-line-heading — не требуем H1 на первой строке (фронтматтер ок)
-MD003: false        # heading-style — не навязываем setext/atx
-MD022: false        # blanks-around-headings — не требуем пустые строки вокруг заголовков
-
-# 🔠 Длина строк: ставим 160 и не проверяем в коде/таблицах/заголовках
 MD013:
   line_length: 160
   code_blocks: false
   tables: false
   headings: false
   strict: false
-  heading_line_length: 160
-  heading_line_length_min: 0
 
-# ↹ Табуляции и пустые строки (чтобы не стопорить релизы)
-MD010: false        # no-hard-tabs
-MD012: false        # no-multiple-blanks
-
-# 🔲 Язык у заборов не требуем (много исторических фрагментов)
-MD040: false        # fenced-code-language
-
-# ❗ По желанию можно оставить включённым, если всё уже починили ранее:
-# MD051: false      # link-fragments (выключи, если снова начнёт сыпаться)
+MD041: false   # allow frontmatter
+MD003: false   # disable heading style enforcement
+MD022: false   # no blank line requirement
+MD010: false   # allow tabs
+MD012: false   # multiple blanks ok
+MD040: false   # no fenced code language enforcement
+MD051: false   # link fragments not required

@@ -63,9 +63,11 @@
 ## 📊 5. Weekly Recommendations
 
 1. 🔒 **Set environment variables** for Telegram notifications in `.env`:
+
    ```bash
    TELEGRAM_BOT_TOKEN=your_token_here
    TELEGRAM_CHAT_ID=your_chat_id_here
+
 🧹 Run make weekly-check manually after major updates.
 
 🧾 Add audit logs to .gitignore if not excluded:
