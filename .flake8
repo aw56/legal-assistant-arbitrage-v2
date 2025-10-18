@@ -1,6 +1,9 @@
-# .flake8 — base config for Legal Assistant Arbitrage v2.8
+# ============================================
+# ⚖️ Flake8 Config — Legal Assistant Arbitrage v2.9.7 LTS
+# ============================================
+
 [flake8]
-max-line-length = 88
+max-line-length = 160
 extend-ignore = E203, E266, E501, W503, F403, F401
 exclude =
     venv,
@@ -9,7 +12,10 @@ exclude =
     patches,
     alembic,
     docs,
-    tests,
-    backup
+    backup,
+    build,
+    dist
+# Пропускаем автосгенерированные и тестовые файлы
 per-file-ignores =
     __init__.py:F401
+    backend/app/tests/conftest.py:E402

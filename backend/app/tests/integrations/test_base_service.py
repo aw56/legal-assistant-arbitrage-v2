@@ -8,7 +8,8 @@ v2.9 Integration & Intelligence Phase
 
 import pytest
 import respx
-from app.integrations.base_service import BaseIntegrationService, IntegrationError
+from app.integrations.base_service import (BaseIntegrationService,
+                                           IntegrationError)
 from httpx import HTTPStatusError, RequestError, Response
 
 

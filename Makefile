@@ -794,7 +794,7 @@ test-ci-v31:
 	  -e docs/Legal_Assistant_Env.postman_environment.json \
 	  --reporters cli,html \
 	  --reporter-html-export artifacts/newman_report_v31.html || { \
-	    echo '❌ Ошибка (см. отчёт)'; exit 1; }
+		echo '❌ Ошибка (см. отчёт)'; exit 1; }
 	@echo "✅ artifacts/newman_report_v31.html"
 
 test-ci-v32:
@@ -803,7 +803,7 @@ test-ci-v32:
 	  -e docs/Legal_Assistant_Env.postman_environment.json \
 	  --reporters cli,html \
 	  --reporter-html-export artifacts/newman_report_v32.html || { \
-	    echo '❌ Ошибка (см. отчёт)'; exit 1; }
+		echo '❌ Ошибка (см. отчёт)'; exit 1; }
 	@echo "✅ artifacts/newman_report_v32.html"
 
 test-ci-v33:
@@ -1317,3 +1317,131 @@ release-template: ## Run full release cycle (autoformat + tag + push)
 
 include make/patch-verify.mk
 include make/release-template.mk
+
+# === Fix & Autoformat Suite (v2.9.7) ===
+include make/fix-suite.mk
+
+# ============================================
+# 🧩 Collaboration Validation Suite (v2.9.7)
+# ============================================
+
+.PHONY: collaboration-check
+collaboration-check: ## Проверяет CI-корректность и соответствие Collaboration Standard (v2.9.7)
+	@echo "🔍 Running Collaboration Validation Suite (v2.9.7)..."
+	@echo "1️⃣ Checking Markdown lint..."
+	@npx markdownlint-cli2 "docs/**/*.md" || (echo "❌ Markdown lint failed." && exit 1)
+	@echo "2️⃣ Checking YAML lint..."
+	@yamllint . || (echo "❌ YAML lint failed." && exit 1)
+	@echo "3️⃣ Checking Python quality (flake8)..."
+	@flake8 backend || (echo "❌ flake8 failed." && exit 1)
+	@echo "4️⃣ Running smoke tests..."
+	@pytest -m smoke --maxfail=1 --disable-warnings -q || (echo "❌ Smoke tests failed." && exit 1)
+	@echo "5️⃣ Validating Collaboration Standard existence..."
+	@if grep -q "Full Archive Mode" docs/COLLABORATION_STANDARD_v2.9.7.md; then \
+		echo "✅ Collaboration Standard found and valid."; \
+	else \
+		echo "❌ Collaboration Standard not found or invalid!"; exit 1; \
+	fi
+	@echo "✅ All checks passed — collaboration environment clean and compliant."
+	@echo "🪶 Logging results to artifacts/COLLABORATION_AUDIT_$(shell date +%Y%m%d_%H%M).log"
+	@mkdir -p artifacts
+	@echo "Collaboration Check — $(shell date)" > artifacts/COLLABORATION_AUDIT_$(shell date +%Y%m%d_%H%M).log
+	@npx markdownlint-cli2 "docs/**/*.md" >> artifacts/COLLABORATION_AUDIT_$(shell date +%Y%m%d_%H%M).log 2>&1 || true
+	@yamllint . >> artifacts/COLLABORATION_AUDIT_$(shell date +%Y%m%d_%H%M).log 2>&1 || true
+	@flake8 backend >> artifacts/COLLABORATION_AUDIT_$(shell date +%Y%m%d_%H%M).log 2>&1 || true
+	@pytest -m smoke --maxfail=1 --disable-warnings -q >> artifacts/COLLABORATION_AUDIT_$(shell date +%Y%m%d_%H%M).log 2>&1 || true
+	@grep -q "Full Archive Mode" docs/COLLABORATION_STANDARD_v2.9.7.md && echo "Standard OK" >> artifacts/COLLABORATION_AUDIT_$(shell date +%Y%m%d_%H%M).log
+	@echo "✅ Audit saved."
+
+# --- Расширение make check-all ---
+check-all: collaboration-check
+	@echo "🧩 Collaboration audit auto-run completed (v2.9.7)."
+
+# =====================================================================
+# 🧩 Global Fix Suite — Legal Assistant Arbitrage v2.9.7 (Full Clean)
+# =====================================================================
+#
+# Назначение:
+# Комплексное автоисправление кода, документации и стандартов проекта.
+# Поддерживает режим "Full Clean File Body" и интеграцию с Collaboration Standard.
+# =====================================================================
+
+.PHONY: fix-docs-lint fix-all-docs fix-collaboration fix-all
+
+# ================================================
+# 🤖 Fix Auto — автоматический пост-коммит автофикс
+# ================================================
+
+.PHONY: fix-auto
+
+fix-auto: ## 🤖 Автоматически запускает fix-all после успешного коммита (Full Clean Mode)
+	@echo "🤖 Auto-fix triggered (post-commit Full Clean Mode)..."
+	@if git diff --quiet; then \
+		echo "🟢 No staged changes — running auto-maintenance fix-all..."; \
+		$(MAKE) fix-all; \
+	else \
+		echo "⚠️  Unstaged changes detected — skipping auto-fix."; \
+	fi
+	@echo "✅ Auto-fix cycle completed."
+
+# ================================================
+# 🧩 Git hook integration (optional)
+# ================================================
+
+.PHONY: install-hooks
+install-hooks: ## 🧩 Устанавливает git-хук post-commit для автофикса
+	@echo "🧩 Installing post-commit hook for fix-auto..."
+	@mkdir -p .git/hooks
+	@echo '#!/bin/bash' > .git/hooks/post-commit
+	@echo 'make fix-auto || true' >> .git/hooks/post-commit
+	@chmod +x .git/hooks/post-commit
+	@echo "✅ Hook installed: .git/hooks/post-commit (runs make fix-auto)"
+
+# ===========================================
+# 🩺 Doctor Check — Makefile Consistency (v2.9.7)
+# Проверяет наличие пробелов вместо табов и целостность heredoc-блоков
+# ===========================================
+
+.PHONY: doctor-check
+doctor-check: ## Проверка Makefile на ошибки форматирования и heredoc
+	@echo "🩺 Checking Makefile consistency..."
+	@if grep -qP '^[ ]{1,}[^\t]' Makefile; then \
+	  echo "❌ Found spaces instead of TABs in Makefile!"; \
+	  grep -nP '^[ ]{1,}[^\t]' Makefile | head -n 10; \
+	  echo "💡 Hint: Run 'make fix-make-tabs' to auto-convert spaces to tabs."; \
+	  exit 1; \
+	else \
+	  echo "✅ All recipe lines start with TABs."; \
+	fi
+	@if grep -q '<<' Makefile; then \
+	  if grep -qP '^\s*EOF$$' Makefile; then \
+		echo "✅ Heredoc EOF markers are aligned properly."; \
+	  else \
+		echo "⚠️  Warning: possible unclosed heredoc block detected!"; \
+		grep -n '<<' Makefile | head -n 10; \
+	  fi; \
+	else \
+	  echo "ℹ️  No heredoc blocks found in Makefile."; \
+	fi
+	@echo "✅ Doctor check completed successfully."
+
+# ===========================================
+# 🧰 Auto Fix — Tabs & Indentation
+# ===========================================
+
+.PHONY: fix-make-tabs
+fix-make-tabs: ## Исправить пробелы на табы в Makefile
+	@echo "🔧 Fixing tabs in Makefile..."
+	@expand -t 4 Makefile | unexpand -t 4 --first-only > Makefile.tmp && mv Makefile.tmp Makefile
+	@echo "✅ Tabs normalized."
+
+	@yamllint .github/workflows/ci.yml || true
+	@echo "✅ CI workflow successfully updated to v2.9.7"
+	@echo "🚀 Ready for commit: git add .github/workflows/ci.yml && git commit -m 'ci: update pipeline to v2.9.7'"
+
+# === Fix CI Workflow — Legal Assistant Arbitrage v2.9.7 ===
+fix-ci:
+	@echo "🚀 Updating CI workflow to v2.9.7..."
+	@./scripts/update_ci_workflow.sh
+	@echo "✅ CI workflow successfully updated to v2.9.7"
+	@echo "💡 Next step: git add .github/workflows/ci.yml && git commit -m 'ci: update pipeline to v2.9.7'"

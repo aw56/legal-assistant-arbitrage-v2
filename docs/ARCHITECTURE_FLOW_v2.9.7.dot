@@ -1,0 +1,75 @@
+digraph LegalAssistantArbitrage {
+  rankdir=TB;
+  bgcolor="#ffffff";
+  node [shape=box style=filled fontname="JetBrains Mono" fontsize=10 fillcolor="#f9f9f9" color="#999999"];
+
+  subgraph cluster_make {
+    label="Makefile Core";
+    "make verify-before-change";
+    "make safe-push";
+    "make check-all";
+    "make collaboration-check";
+    color="#cccccc";
+  }
+
+  subgraph cluster_precommit {
+    label="Pre-commit Hooks";
+    "black" -> "isort" -> "flake8";
+    "markdownlint" -> "yamllint" -> "detect-secrets";
+    "pytest (pre-push)";
+    color="#cccccc";
+  }
+
+  subgraph cluster_tests {
+    label="Test Suite";
+    "pytest.ini";
+    "conftest.py";
+    "integration tests" -> "smoke tests";
+    color="#cccccc";
+  }
+
+  subgraph cluster_integrations {
+    label="Integration Layer";
+    "base_service.py" -> "kad_service.py" -> "pravo_service.py";
+    "integration_logger.py";
+    color="#cccccc";
+  }
+
+  subgraph cluster_docs {
+    label="Documentation Layer";
+    "COLLABORATION_STANDARD_v2.9.7.md";
+    "DEVOPS_PRACTICE_GUIDE_v2.9.md";
+    "SAFE_PUSH_AND_VERIFICATION_GUIDE_v2.8.md";
+    "MAKE_PATCH_AND_RELEASE_GUIDE_v2.8.md";
+    "ROADMAP_v2.9.md";
+    "INTEGRATION_REPORT_v2.9.7.html";
+    color="#cccccc";
+  }
+
+  subgraph cluster_ci {
+    label="CI/CD Layer";
+    ".github/workflows/ci.yml";
+    ".github/workflows/ci_integrations.yml";
+    ".github/workflows/docs.yml";
+    color="#cccccc";
+  }
+
+  subgraph cluster_artifacts {
+    label="Artifacts & Snapshots";
+    "integration_report.html";
+    "PROGRESS_YYYYMMDD_HHMM.md";
+    color="#cccccc";
+  }
+
+  "make verify-before-change" -> "black";
+  "make verify-before-change" -> "markdownlint";
+  "make safe-push" -> "pytest (pre-push)";
+  "flake8" -> "pytest.ini";
+  "pytest.ini" -> "integration tests";
+  "integration tests" -> "integration_report.html";
+  "integration tests" -> "COLLABORATION_STANDARD_v2.9.7.md";
+  "make collaboration-check" -> "COLLABORATION_STANDARD_v2.9.7.md";
+  "COLLABORATION_STANDARD_v2.9.7.md" -> ".github/workflows/ci.yml";
+  ".github/workflows/ci.yml" -> "integration_report.html";
+  "integration_report.html" -> "PROGRESS_YYYYMMDD_HHMM.md";
+}

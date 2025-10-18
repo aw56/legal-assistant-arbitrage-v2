@@ -43,9 +43,9 @@ makefile
 Копировать код
 .PHONY: patch-verify
 patch-verify: ## Verify patch integrity and reversibility (usage: make patch-verify version=v2.8)
-	@ver=$${version:-v2.8}; \
-	patch_file="patches/$$ver/$${ver}_dev_base_state.patch"; \
-	echo "🔍 Checking patch integrity for $$ver..."; \
+	@`ver`=$${version:-v2.8}; \
+	patch_file="patches/$$`ver`/$${`ver`}_dev_base_state.patch"; \
+	echo "🔍 Checking patch integrity for $$`ver`..."; \
 	if [ ! -f "$$patch_file" ]; then \
 		echo "❌ Patch file not found: $$patch_file"; exit 1; fi; \
 	if git apply --check "$$patch_file" >/dev/null 2>&1; then \
@@ -59,10 +59,10 @@ patch-verify: ## Verify patch integrity and reversibility (usage: make patch-ver
 		echo "⚠️  Reverse check failed (already base or modified)."; \
 	fi; \
 	echo "📄 Patch summary:"; \
-	if git rev-parse "$${ver}-base" >/dev/null 2>&1; then \
-		git diff "$${ver}-base"..HEAD --stat; \
+	if git rev-parse "$${`ver`}-base" >/dev/null 2>&1; then \
+		git diff "$${`ver`}-base"..HEAD --stat; \
 	else \
-		echo "⚠️  Base tag $${ver}-base not found."; \
+		echo "⚠️  Base tag $${`ver`}-base not found."; \
 	fi
 📖 Пример запуска
 bash
@@ -116,8 +116,8 @@ makefile
 Копировать код
 .PHONY: release-template
 release-template: ## Run full release cycle (autoformat + tag + push)
-	@ver=$${version:-v2.8}; \
-	echo "🚀 Starting universal release pipeline for $$ver..."; \
+	@`ver`=$${version:-v2.8}; \
+	echo "🚀 Starting universal release pipeline for $$`ver`..."; \
 	echo "🧹 Running cleanup and formatting..."; \
 	black backend/app || true; \
 	isort backend/app || true; \
@@ -127,12 +127,12 @@ release-template: ## Run full release cycle (autoformat + tag + push)
 	echo "🪄 Linting and fixing markdown docs..."; \
 	npx markdownlint-cli2 --fix 'docs/**/*.md' || true; \
 	echo "✅ Creating Git tag..."; \
-	read -p 'Enter new version tag (default $$ver): ' tag; \
-	tag=$${tag:-$$ver}; \
+	read -p 'Enter new version tag (default $$`ver`): ' tag; \
+	tag=$${tag:-$$`ver`}; \
 	git add docs && \
 	git commit -am "chore(release): finalize $$tag" --no-verify && \
 	git tag -a $$tag -m "Release $$tag — Autoformat + Docs Sync" && \
-	git push origin release/$${ver}-dev --tags && \
+	git push origin release/$${`ver`}-dev --tags && \
 	echo "✅ Release $$tag pushed successfully!"
 🧱 5. Проверка и чистка перед релизом
 Перед тегированием:
@@ -151,7 +151,7 @@ make patch-clean
 Версия	Базовый тег	Каталог патчей	Основные цели
 v2.7	v2.7	patches/v2.7/	release-v2.7, check-all
 v2.8	v2.8-base	patches/v2.8/	release-template, patch-verify
-≥v2.9	<ver>-base	patches/<ver>/	unified release-template + patch-verify
+≥v2.9	<`ver`>-base	patches/<`ver`>/	unified release-template + patch-verify
 
 ✅ 7. Контрольная команда
 Чтобы убедиться, что всё настроено верно:
@@ -163,3 +163,4 @@ make patch-verify version=v2.8 && make release-template version=v2.8
 
 📅 Последняя ревизия: 2025-10-16
 👤 Ответственный: Aleksej (Project Owner)
+```

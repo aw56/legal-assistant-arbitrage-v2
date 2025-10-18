@@ -96,13 +96,7 @@ repos:
     hooks: [{ id: flake8, entry: flake8 --config=.flake8 }]
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v6.0.0
-    hooks:
-      [
-        { id: trailing-whitespace },
-        { id: end-of-file-fixer },
-        { id: check-yaml },
-        { id: check-json },
-      ]
+    hooks: [{ id: trailing-whitespace }, { id: end-of-file-fixer }, { id: check-yaml }, { id: check-json }]
   - repo: https://github.com/igorshubovych/markdownlint-cli
     rev: v0.45.0
     hooks: [{ id: markdownlint, files: ^docs/ }]

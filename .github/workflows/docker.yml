@@ -8,8 +8,8 @@ name: Docker Build & Push
       - completed
   push:
     tags:
-      - "v*.*.*"  # автосборка при релизе (например, v1.0.0)
-  workflow_dispatch: {}  # ручной запуск из Actions UI
+      - "v*.*.*" # автосборка при релизе (например, v1.0.0)
+  workflow_dispatch: {} # ручной запуск из Actions UI
 
 jobs:
   docker:
